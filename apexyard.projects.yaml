@@ -78,6 +78,30 @@ projects:
       - revenue
     ticket_prefix: SPARK
 
+  # ---------------------------------------------------------------------------
+  # DFN — Apes Solutions Nx monorepo (NestJS + React + Postgres + Mongo + Redis)
+  # Onboarded 2026-05-13 via /handover. See projects/dfn/handover-assessment.md.
+  # ---------------------------------------------------------------------------
+  - name: DFN
+    repo: apessolutions/dfn
+    workspace: workspace/dfn
+    docs: projects/dfn
+    status: handover
+    tier: P0
+    roles:
+      - tech-lead
+      - backend-engineer
+      - frontend-engineer
+      - platform-engineer
+      - sre
+      - security-auditor
+      - data-engineer
+    tags:
+      - customer-facing
+      - revenue
+      - monorepo
+    ticket_prefix: DFN
+
 # -----------------------------------------------------------------------------
 # Defaults
 # -----------------------------------------------------------------------------
