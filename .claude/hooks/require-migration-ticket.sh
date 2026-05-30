@@ -37,7 +37,32 @@
 # present, otherwise defaults below apply.
 
 INPUT=$(cat)
+TOOL_NAME=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null)
 FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // .tool_input.path // empty' 2>/dev/null)
+
+# Bash-tool path: if the command writes, try to extract the target so we
+# can apply the migration-path matcher to it. If extraction fails (e.g.
+# `python -c '…write_text("file"…)…'`), FILE_PATH stays empty and the
+# hook exits 0 — the migration gate is path-specific, so an
+# unextractable target falls outside the gate's scope.
+# See me2resh/apexyard#151 + _lib-detect-bash-write.sh for the detector.
+if [ "$TOOL_NAME" = "Bash" ]; then
+  COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null)
+  [ -z "$COMMAND" ] && exit 0
+
+  HOOK_DIR="$(cd "$(dirname "$0")" && pwd)"
+  if [ -f "$HOOK_DIR/_lib-detect-bash-write.sh" ]; then
+    # shellcheck source=/dev/null
+    . "$HOOK_DIR/_lib-detect-bash-write.sh"
+    if ! bash_command_appears_to_write "$COMMAND"; then
+      exit 0
+    fi
+    FILE_PATH=$(bash_extract_write_target "$COMMAND")
+  else
+    # Library missing — fall back to no-op rather than bricking the hook.
+    exit 0
+  fi
+fi
 
 if [ -z "$FILE_PATH" ]; then
   exit 0
@@ -54,20 +79,45 @@ esac
 # crosses `/`), so no separate arm is needed.
 
 # --------- Discover ops root ---------
+HOOK_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
 OPS_ROOT=""
 if [ -n "$REPO_ROOT" ]; then
-  r="$REPO_ROOT"
-  while [ -n "$r" ] && [ "$r" != "/" ]; do
-    if [ -f "$r/onboarding.yaml" ] && [ -f "$r/apexyard.projects.yaml" ]; then
-      OPS_ROOT="$r"
-      break
-    fi
-    r=$(dirname "$r")
-  done
+  if [ -f "$HOOK_DIR/_lib-ops-root.sh" ]; then
+    # shellcheck source=/dev/null
+    . "$HOOK_DIR/_lib-ops-root.sh"
+    OPS_ROOT=$(resolve_ops_root "$REPO_ROOT")
+  else
+    r="$REPO_ROOT"
+    while [ -n "$r" ] && [ "$r" != "/" ]; do
+      if [ -f "$r/.apexyard-fork" ]; then
+        OPS_ROOT="$r"
+        break
+      fi
+      if [ -f "$r/onboarding.yaml" ] && [ -f "$r/apexyard.projects.yaml" ]; then
+        OPS_ROOT="$r"
+        break
+      fi
+      r=$(dirname "$r")
+    done
+  fi
 fi
 MARKER_HOME="${OPS_ROOT:-$REPO_ROOT}"
 MARKER_HOME="${MARKER_HOME:-.}"
+
+# Resolve the workspace dir (defaults to $OPS_ROOT/workspace; v2
+# split-portfolio adopters point at the private sibling repo).
+WORKSPACE_DIR="$OPS_ROOT/workspace"
+if [ -n "$OPS_ROOT" ] && [ -f "$HOOK_DIR/_lib-portfolio-paths.sh" ] && [ -f "$HOOK_DIR/_lib-read-config.sh" ]; then
+  # shellcheck source=/dev/null
+  . "$HOOK_DIR/_lib-read-config.sh"
+  # shellcheck source=/dev/null
+  . "$HOOK_DIR/_lib-portfolio-paths.sh"
+  resolved_ws=$(portfolio_workspace_dir 2>/dev/null)
+  if [ -n "$resolved_ws" ]; then
+    WORKSPACE_DIR="$resolved_ws"
+  fi
+fi
 
 # --------- Load project-config overrides ---------
 MIGRATION_LABEL="migration"
@@ -131,10 +181,19 @@ if ! is_migration_path "$FILE_PATH"; then
 fi
 
 # --------- Gate 1: active ticket marker ---------
-# Reuse the #41 resolution: per-project marker if FILE_PATH is under
-# ops_root/workspace/<project>/, otherwise the ops-level fallback.
+# Reuse the #41 resolution: per-project marker if FILE_PATH is under the
+# resolved workspace dir, otherwise the ops-level fallback. The resolved
+# workspace dir may live in the private sibling repo for v2 adopters.
 PROJECT=""
-if [ -n "$OPS_ROOT" ]; then
+if [ -n "$WORKSPACE_DIR" ]; then
+  case "$FILE_PATH" in
+    "$WORKSPACE_DIR"/*)
+      tail="${FILE_PATH#$WORKSPACE_DIR/}"
+      PROJECT="${tail%%/*}"
+      ;;
+  esac
+fi
+if [ -z "$PROJECT" ] && [ -n "$OPS_ROOT" ]; then
   case "$FILE_PATH" in
     "$OPS_ROOT"/workspace/*)
       tail="${FILE_PATH#$OPS_ROOT/workspace/}"

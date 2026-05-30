@@ -36,6 +36,23 @@ Do not start coding until **all** of these exist in your ticket tracker:
 - Technical tasks broken down
 - Tickets moved to "Todo" or "In Progress"
 
+### Bootstrap-skill exemption
+
+The pre-build gate is enforced mechanically by `require-active-ticket.sh`, which fires on `Edit`, `Write`, `MultiEdit`, **and** `Bash` (the Bash matcher uses `_lib-detect-bash-write.sh` to detect `>` redirection, `tee`, `sed -i`, `python -c '…write…'`, `node -e '…writeFile…'`, etc. — closing the bypass surface from me2resh/apexyard#151).
+
+A small set of **bootstrap-class skills** runs before any portfolio is configured, before any project is registered, and therefore before any tracker tickets can exist. For these, the gate is exempt:
+
+- `/setup` — first-run framework bootstrap on a fresh fork
+- `/handover` — adopting an external project (registry / `projects/<name>/` writes happen before the project's own tracker is wired up)
+- `/update` — upstream sync (touches framework files; the only "ticket" for this work is the sync itself)
+- `/split-portfolio` — destructive migration to split-portfolio mode (rewriting fork-root files; existing private-name tickets being redacted *as the work proceeds*)
+
+The list lives at `.claude/project-config.defaults.json` → `ticket.bootstrap_skills`. Adopters extend it via `.claude/project-config.json` shallow-merge if they have custom bootstrap skills.
+
+**Mechanism:** each bootstrap skill writes its name to `.claude/session/active-bootstrap` on entry and removes the file on completion. The hook reads the marker and exempts skills on the configured list. The `clear-bootstrap-marker.sh` SessionStart hook sweeps stale markers from interrupted sessions so a crashed / killed skill can't leave the exemption open forever.
+
+See AgDR-0011 + me2resh/apexyard#150 for the full design rationale.
+
 ## Migration Gate (3a) — dedicated ticket + AgDR
 
 Any edit to a file that matches the migration-path patterns (configurable via `.claude/project-config.json` → `migration_paths`) requires:
@@ -56,6 +73,29 @@ Default migration paths:
 
 **How to satisfy**: run `/migration` — it asks for migration type, affected tables, rollback plan, downtime estimate, cross-service consumers, data volume, testing plan, and observability, then creates the labelled issue AND writes the AgDR in one flow.
 
+## Spike work — exempt from a defined subset of these gates
+
+Spike tickets (prefix `[Spike]`, label `spike`) are hypothesis-driven, time-boxed, throw-away exploration. The full production SDLC is the wrong bar — author avoidance is the failure mode. The exemption set below is **surgical, not blanket**:
+
+| Gate | Production work | Spike work |
+|------|----------------|------------|
+| Pre-Build (parent epic, story tickets, ACs, design review) | Required | Skipped — the spike ticket IS the unit |
+| AgDR for technical decisions (`require-agdr-for-arch-pr.sh`, `require-agdr-for-arch-changes.sh`) | Required | Skipped — ship a memo on `/spike-close --discard` instead |
+| Test coverage > 80% | Required | Skipped — coverage is irrelevant for throw-away code |
+| Code Reviewer agent (Rex) | Required on every PR | **Required** — even throw-away code gets a sanity check |
+| Security Auditor (auth/crypto/secrets diff) | Required | **Required** — security gates fire regardless of intent |
+| Glossary in PR body | Required | **Required** — spike PRs explain WHAT WAS LEARNED, which is the artefact |
+| QA Engineer verification | Required (AC verification) | **Required** (Hypothesis verification: did we answer the question?) |
+| Disposition decision before close | N/A | **Required** — operator must declare PROMOTE or DISCARD via `/spike-close` |
+
+**Detection.** AgDR-required hooks detect a spike PR via:
+
+1. PR title carries `spike(...)` as the conventional-commit type
+2. Active ticket marker references a `[Spike]`-prefixed ticket
+3. Branch name starts with `spike/`
+
+Any one match exempts the gate; otherwise the production rule applies. See `.claude/skills/spike/SKILL.md`, `.claude/skills/spike-close/SKILL.md`, and `docs/agdr/AgDR-0017-spike-skill-schema-and-exemptions.md`.
+
 ## QA State is Mandatory
 
 A merged PR moves the ticket to **QA** state, **not** Done. A QA Engineer manually verifies the acceptance criteria, then moves the ticket to Done.
@@ -66,3 +106,7 @@ In Progress → In Review → QA → Done
                     MANDATORY STOP
                     QA must verify
 ```
+
+---
+
+*Part of [ApexYard](https://github.com/me2resh/apexyard) — multi-project SDLC framework for Claude Code · MIT.*

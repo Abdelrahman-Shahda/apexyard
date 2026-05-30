@@ -1,6 +1,6 @@
 ---
 name: roadmap
-description: Update, create, or reprioritise the product roadmap. Supports adding, removing, and reordering milestones, then renders a markdown table per milestone.
+description: Update / create / reprioritise the product roadmap — add, remove, reorder milestones; renders a markdown table per milestone.
 argument-hint: "[add|remove|reorder|show] [item]"
 allowed-tools: Bash, Read, Edit, Write, Grep, Glob
 ---
@@ -8,6 +8,32 @@ allowed-tools: Bash, Read, Edit, Write, Grep, Glob
 # /roadmap — Product Roadmap
 
 Manage the product roadmap as a single durable file. The skill is intentionally low-ceremony: a roadmap is a markdown file with milestones, each containing a table of items. `/roadmap` reads it, edits it, and renders it.
+
+## Path resolution
+
+Read the registry path via `portfolio_registry`, the per-project docs dir via `portfolio_projects_dir`, and the ideas backlog via `portfolio_ideas_backlog` — all from `.claude/hooks/_lib-portfolio-paths.sh`. Source the helper at the top of any bash block that touches those paths:
+
+```bash
+source "$(git rev-parse --show-toplevel)/.claude/hooks/_lib-read-config.sh"
+source "$(git rev-parse --show-toplevel)/.claude/hooks/_lib-portfolio-paths.sh"
+projects_dir=$(portfolio_projects_dir)
+registry=$(portfolio_registry)
+```
+
+Defaults match today's single-fork layout (`./apexyard.projects.yaml`, `./projects`, `./projects/ideas-backlog.md`). Adopters in split-portfolio mode override the `portfolio.{registry, projects_dir, ideas_backlog}` keys in `.claude/project-config.json`. Don't hardcode literal `apexyard.projects.yaml` or `projects/` paths in bash blocks — the helper resolves whichever mode the adopter is in. See `docs/multi-project.md`.
+
+**Write targets** (see me2resh/apexyard#373 + #443): paths documented as `projects/<name>/X` in this skill are canonical adopter-facing forms — implement them in bash as `"${projects_dir}/<name>/X"`. Never construct from `"${PWD}/projects/..."`, `"$(git rev-parse --show-toplevel)/projects/..."`, or a literal `./projects/...` — those break in split-portfolio v2 mode where `projects_dir` resolves to a sibling repo.
+
+**REQUIRED per-block preamble** (see #443): Claude executes each ```bash``` block as a separate shell invocation. The `projects_dir` assignment from the Path resolution section above does NOT carry into later blocks. Every bash block that writes to a `projects/<name>/X` path MUST start with this three-line preamble so it's self-contained:
+
+```bash
+source "$(git rev-parse --show-toplevel)/.claude/hooks/_lib-read-config.sh"
+source "$(git rev-parse --show-toplevel)/.claude/hooks/_lib-portfolio-paths.sh"
+projects_dir=$(portfolio_projects_dir)
+# ... now write to "${projects_dir}/<name>/X"
+```
+
+The Path resolution section's example sources the helper *once* for documentation purposes; it does not absolve later blocks from sourcing it themselves. Treat each ```bash``` fence as a fresh process.
 
 ## Activated role
 
@@ -188,3 +214,7 @@ Owner: @octocat
 - `/write-spec` — once a roadmap item is approved, write its PRD
 - `/stakeholder-update` — pulls "Now" and "Done" sections to summarise progress
 - `/idea` — for ideas not yet on the roadmap
+
+---
+
+*Part of [ApexYard](https://github.com/me2resh/apexyard) — multi-project SDLC framework for Claude Code · MIT.*

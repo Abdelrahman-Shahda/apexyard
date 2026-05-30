@@ -1,24 +1,109 @@
 <!doctype html>
+<!--
+  ApexYard · © 2026 me2resh
+  yard.apexscript.com · github.com/me2resh/apexyard · MIT
+  Multi-project SDLC framework for Claude Code.
+-->
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ApexYard - where projects get forged</title>
-<meta name="description" content="SDLC-as-code for founders who ship alone, or companies standing up AI-enabled squads. One ops repo governs all your projects. 33 skills, 18 hooks, 19 roles. MIT, plain markdown and shell, Claude Code native.">
+<title>ApexYard — ship AI-built software like a real engineering team</title>
+<meta name="author" content="me2resh">
+<meta name="copyright" content="© 2026 ApexYard · MIT">
+<meta name="description" content="Ship AI-built software like a real engineering team. Automatic code review, launch-readiness checks, one inbox for every product — on Claude Code.">
 <link rel="canonical" href="https://yard.apexscript.com/">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="alternate" type="text/markdown" href="/index.md">
+
+<!-- LLM consumers: payload size hints (token estimate = chars / 4). #333 item C. -->
+<meta name="llm:token-count" content="23189">
+<meta name="llm:doc-length" content="92757 chars">
 
 <!-- Open Graph -->
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="ApexYard">
 <meta property="og:url" content="https://yard.apexscript.com/">
-<meta property="og:title" content="ApexYard - where projects get forged">
-<meta property="og:description" content="SDLC-as-code for founders who ship alone, or companies standing up AI-enabled squads. One ops repo governs all your projects. MIT, plain markdown and shell.">
+<meta property="og:title" content="ApexYard — ship AI-built software like a real engineering team">
+<meta property="og:description" content="Ship AI-built software like a real engineering team. Automatic code review, launch-readiness checks, one inbox for every product — on Claude Code.">
+<meta property="og:image" content="https://yard.apexscript.com/og/index.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
 
 <!-- Twitter / X -->
-<meta name="twitter:card" content="summary">
+<meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:url" content="https://yard.apexscript.com/">
-<meta name="twitter:title" content="ApexYard - where projects get forged">
-<meta name="twitter:description" content="SDLC-as-code for founders who ship alone, or companies standing up AI-enabled squads. MIT, plain markdown and shell.">
+<meta name="twitter:title" content="ApexYard — ship AI-built software like a real engineering team">
+<meta name="twitter:description" content="Ship AI-built software like a real engineering team. Automatic code review, launch-readiness checks, one inbox for every product — on Claude Code.">
+<meta name="twitter:image" content="https://yard.apexscript.com/og/index.png">
+
+<!-- Structured data: SoftwareApplication, Organization, WebSite -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "ApexYard",
+  "alternateName": "apexyard",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": "Cross-platform",
+  "url": "https://yard.apexscript.com/",
+  "description": "Ship AI-built software like a real engineering team. Automatic code review, launch-readiness checks, one inbox for every product — on Claude Code.",
+  "license": "https://opensource.org/licenses/MIT",
+  "softwareVersion": "1.3.0",
+  "downloadUrl": "https://github.com/me2resh/apexyard",
+  "datePublished": "2026-04-09",
+  "dateModified": "2026-05-24",
+  "copyrightYear": "2026",
+  "copyrightHolder": {
+    "@type": "Person",
+    "name": "me2resh",
+    "url": "https://me2resh.com"
+  },
+  "author": {
+    "@type": "Person",
+    "name": "me2resh",
+    "url": "https://me2resh.com"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "ApexYard",
+    "url": "https://yard.apexscript.com/",
+    "logo": "https://yard.apexscript.com/favicon.svg"
+  },
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "ApexYard",
+  "url": "https://yard.apexscript.com/",
+  "logo": "https://yard.apexscript.com/favicon.svg",
+  "sameAs": [
+    "https://github.com/me2resh/apexyard"
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "ApexYard",
+  "url": "https://yard.apexscript.com/",
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": "https://github.com/me2resh/apexyard/search?q={search_term_string}",
+    "query-input": "required name=search_term_string"
+  }
+}
+</script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -197,6 +282,12 @@ a:hover { color: var(--accent); }
   color: var(--paper);
   border-color: var(--ink);
 }
+@media (max-width: 700px) {
+  /* On mobile, collapse the nav to only the CTA chips + always-on items.
+     Keeps quickstart + github visible; hides how-it-works / architecture /
+     skills / changelog (still reachable via footer nav). */
+  .titlebar__right a:not(.is-cta):not(.always) { display: none; }
+}
 
 /* ============================================================
    hero - full-bleed ascii poster
@@ -230,6 +321,12 @@ a:hover { color: var(--accent); }
   text-transform: uppercase;
   letter-spacing: 0.06em;
   font-size: 11px;
+}
+@media (max-width: 700px) {
+  /* Drop the copy-for-ai button to its own line on mobile so the pill + subtitle row
+     stays as a single coherent group. Inline margin-left:auto already pushes it right
+     on desktop. */
+  .hero__eyebrow .copy-for-ai { margin-left: 0; flex-basis: 100%; }
 }
 
 .hero__title {
@@ -456,6 +553,42 @@ a:hover { color: var(--accent); }
   color: var(--ink-faint);
   letter-spacing: 0.03em;
   text-transform: lowercase;
+}
+/* Tab strip — one tab per demo flow, lives where the title used to. The active tab gets an
+   accent underline. Auto-advance is JS-driven; tabs are also clickable to jump directly. */
+.shell-demo__tabs {
+  display: flex;
+  flex: 1 1 auto;
+  margin-left: 0.35rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.shell-demo__tabs::-webkit-scrollbar { display: none; }
+.shell-demo__tab {
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: var(--ink-faint);
+  font-family: inherit;
+  font-size: 11px;
+  letter-spacing: 0.03em;
+  text-transform: lowercase;
+  padding: 0.3rem 0.7rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.shell-demo__tab:hover,
+.shell-demo__tab:focus-visible {
+  color: var(--ink-soft);
+  outline: none;
+}
+.shell-demo__tab.is-active {
+  color: var(--ink);
+  border-bottom-color: var(--accent);
+}
+@media (max-width: 720px) {
+  .shell-demo__tab { padding: 0.25rem 0.5rem; font-size: 10px; }
 }
 .shell-demo__replay {
   display: none;
@@ -1149,31 +1282,33 @@ a:hover { color: var(--accent); }
    footer
    ============================================================ */
 
-footer.foot {
-  padding: 2rem 0 2.5rem;
+.page-footer {
+  padding: 1.5rem 0 2rem;
+  font-size: 12px;
+  color: var(--ink-faint);
+  border-top: 1px solid var(--rule-faint);
+  margin-top: 4rem;
   background: var(--paper);
 }
-.foot__inner {
+.page-footer__inner {
   max-width: var(--max-w);
   margin: 0 auto;
   padding: 0 var(--gutter);
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.page-footer__nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.8rem;
+}
+.page-footer__meta {
   font-size: 11px;
   color: var(--ink-faint);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
 }
-.foot__inner a {
-  color: var(--ink-soft);
-  border-bottom: 1px solid var(--rule-faint);
-  padding-bottom: 1px;
-}
-.foot__inner a:hover {
-  color: var(--accent);
-  border-bottom-color: var(--accent);
-}
+.page-footer a { color: var(--ink-soft); border-bottom: 1px dotted currentColor; padding-bottom: 1px; }
+.page-footer a:hover { color: var(--accent); border-bottom-color: var(--accent); }
 
 /* ============================================================
    page-load reveal - staggered, restrained
@@ -1214,10 +1349,112 @@ footer.foot {
 .skip:focus { left: 1rem; top: 1rem; }
 
 /* ============================================================
+   outcome tiles - the "what you get" row that sits above the
+   terminal animation. Same visual grammar as .layers but
+   simpler: plain-language, three columns, no metric numbers.
+   ============================================================ */
+
+.outcome-tiles {
+  max-width: var(--max-w);
+  margin: 0 auto;
+  padding: 0 var(--gutter);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+  border: 1px solid var(--rule);
+}
+@media (max-width: 900px) {
+  .outcome-tiles { grid-template-columns: 1fr; }
+}
+.outcome-tile {
+  padding: 2rem 1.75rem;
+  border-right: 1px solid var(--rule-faint);
+}
+.outcome-tile:last-child { border-right: none; }
+@media (max-width: 900px) {
+  .outcome-tile { border-right: none; border-bottom: 1px solid var(--rule-faint); }
+  .outcome-tile:last-child { border-bottom: none; }
+}
+.outcome-tile__num {
+  font-size: 11px;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.6rem;
+  font-weight: 700;
+}
+.outcome-tile__title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 0.75rem;
+  letter-spacing: -0.018em;
+  line-height: 1.2;
+}
+.outcome-tile__desc {
+  font-size: 13.5px;
+  color: var(--ink-soft);
+  line-height: 1.65;
+  max-width: 42ch;
+}
+
+/* "Who this is for" — three-card row, same border grammar */
+.audience {
+  max-width: var(--max-w);
+  margin: 0 auto;
+  padding: 0 var(--gutter);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+  border: 1px solid var(--rule);
+}
+@media (max-width: 900px) {
+  .audience { grid-template-columns: 1fr; }
+}
+.audience__card {
+  padding: 1.75rem 1.5rem;
+  border-right: 1px solid var(--rule-faint);
+}
+.audience__card:last-child { border-right: none; }
+@media (max-width: 900px) {
+  .audience__card { border-right: none; border-bottom: 1px solid var(--rule-faint); }
+  .audience__card:last-child { border-bottom: none; }
+}
+.audience__who {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 0.65rem;
+  line-height: 1.3;
+}
+.audience__detail {
+  font-size: 13px;
+  color: var(--ink-soft);
+  line-height: 1.6;
+}
+
+/* Plain-language intro paragraph that sits above the terminal demo
+   section so the brutalist screen reads as proof, not as primary
+   sales material. */
+.terminal-intro {
+  max-width: var(--max-w);
+  margin: 0 auto 1.75rem;
+  padding: 0 var(--gutter);
+  font-size: 14px;
+  color: var(--ink-soft);
+  line-height: 1.65;
+  max-width: 65ch;
+}
+.terminal-intro__inner {
+  max-width: 65ch;
+}
+
+/* ============================================================
    cookie consent banner - minimal, non-blocking.
    Gates Google Analytics (Consent Mode v2) for GDPR/ePrivacy.
    ============================================================ */
 
+/* begin: consent-css — keep in sync across all site/*.html pages (#399) */
 .consent {
   position: fixed;
   bottom: 0;
@@ -1266,8 +1503,10 @@ footer.foot {
   background: var(--accent);
   border-color: var(--accent);
 }
+/* end: consent-css */
 </style>
 
+<!-- begin: gtag — keep in sync across all site/*.html pages (#399) -->
 <!-- Google tag (gtag.js) with Consent Mode v2 - analytics_storage defaults to denied
      until the consent banner below records an explicit choice. -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-G3EMR3CB02"></script>
@@ -1286,8 +1525,9 @@ footer.foot {
     }
   } catch (e) {}
   gtag('js', new Date());
-  gtag('config', 'G-G3EMR3CB02', { 'anonymize_ip': true });
+  gtag('config', 'G-G3EMR3CB02');
 </script>
+<!-- end: gtag -->
 </head>
 <body>
 <a href="#main" class="skip">Skip to content</a>
@@ -1303,12 +1543,14 @@ footer.foot {
         <span class="titlebar__dot"></span>
         <span class="titlebar__dot is-warn"></span>
       </span>
-      <span class="titlebar__path">~/<b>apexyard</b> <span class="dim">- main · v1.1</span></span>
+      <span class="titlebar__path">~/<b>apexyard</b></span>
     </div>
     <nav class="titlebar__right" aria-label="Primary">
-      <a href="#quickstart">quickstart</a>
-      <a href="#examples">walkthroughs</a>
-      <a href="#in-the-box">what's in the box</a>
+      <a href="/how-it-works" class="always">how it works</a>
+      <a href="#quickstart" class="is-cta always">quickstart</a>
+      <a href="/architecture" class="always">architecture</a>
+      <a href="/skills" class="always">skills</a>
+      <a href="https://github.com/me2resh/apexyard/releases" target="_blank" rel="noopener">changelog →</a>
       <a href="https://github.com/me2resh/apexyard" class="is-cta" target="_blank" rel="noopener">github →</a>
     </nav>
   </div>
@@ -1324,44 +1566,176 @@ footer.foot {
 
     <div class="hero__eyebrow rise rise-1">
       <span class="pill">apexyard v1.1</span>
-      <span>open source · MIT · for founders forging multiple products</span>
+      <span>open source · built for founders shipping with AI</span>
+      <button class="copy-for-ai" data-md-url="/index.md" type="button" style="margin-left:auto;font-size:0.75rem;padding:0.25rem 0.6rem;border:1px solid currentColor;border-radius:4px;background:transparent;color:inherit;cursor:pointer;font-family:inherit;">Copy as Markdown for AI</button>
     </div>
 
     <h1 class="hero__title rise rise-2">apexyard</h1>
 
-    <p class="hero__version rise rise-2" style="margin:-0.5em 0 0.5em;font-size:14px;opacity:0.7;letter-spacing:0.05em;">
+    <p class="hero__version rise rise-2" style="margin:-0.5em 0 0.5em;font-size:13px;opacity:0.55;letter-spacing:0.05em;">
       <a href="https://github.com/me2resh/apexyard/releases/tag/v1.1.0" style="color:inherit;text-decoration:none;" target="_blank" rel="noopener">v1.1.0</a>
       &nbsp;·&nbsp;
       <a href="https://github.com/me2resh/apexyard/blob/main/CHANGELOG.md" style="color:inherit;text-decoration:underline;text-underline-offset:3px;" target="_blank" rel="noopener">changelog</a>
     </p>
 
     <p class="hero__tagline rise rise-3">
-      Where projects get forged.
+      Ship AI-built software like a real engineering team — without hiring one.
     </p>
 
-    <p class="hero__builtby rise rise-3">
-      Built by <a href="https://me2resh.com" target="_blank" rel="noopener">me2resh</a>
-    </p>
-
-    <p class="hero__sub rise rise-3">
-      SDLC-as-code for founders who ship alone, or companies standing up AI-enabled squads. One ops-repo fork governs <em>all</em> your products. Rules that can't be argued with - they're shell hooks, not PDFs. 19 roles, 33 skills, 18 mechanical gates, one inbox across the whole portfolio. Claude Code is the default driver; the rules, hooks, agents, and skills are plain markdown and shell - swap the AI, keep the forge.
+    <p class="hero__sub rise rise-3" id="ai-lead">
+      ApexYard adds the reviews, guardrails, and process behind every change you make with Claude Code. Catch the mistakes before your customers do — automatically, without checking every commit yourself. <a href="/how-it-works" class="uline" style="white-space:nowrap;">See a day with it →</a>
     </p>
 
     <div class="hero__cta rise rise-4">
-      <a href="https://github.com/me2resh/apexyard" class="cta cta--primary" target="_blank" rel="noopener">★ Star &nbsp;·&nbsp; ⑂ Fork on GitHub</a>
+      <a href="#quickstart" class="cta cta--primary">Quickstart — fork &amp; <code>/setup</code> in minutes →</a>
       <span class="cta__sep" aria-hidden="true">·</span>
-      <a href="#quickstart" class="cta cta--ghost">or see the 3-step quickstart ↓</a>
+      <a href="https://github.com/me2resh/apexyard" class="cta cta--ghost" target="_blank" rel="noopener">⑂ Fork on GitHub ↗</a>
     </div>
 
-    <div class="shell-demo shell-demo--tall rise rise-4" id="shell-lifecycle" aria-label="Demo of a full ticket lifecycle in apexyard, from inbox pickup to QA sign-off">
-      <div class="shell-demo__chrome" aria-hidden="true">
-        <span class="shell-demo__dots">
+    <p class="hero__builtby rise rise-4">
+      Built by <a href="https://me2resh.com" target="_blank" rel="noopener">me2resh</a>
+    </p>
+
+  </div>
+</section>
+
+<!-- ============================================================
+     WHAT YOU GET — three outcome tiles in plain language.
+     This is the first section a founder hits after the hero;
+     it sets expectations in their words, not ours.
+     ============================================================ -->
+<section class="section section--alt" id="what-you-get" aria-label="What you get with ApexYard">
+  <div class="section__head">
+    <span class="section__num">01 / WHAT YOU GET</span>
+    <h2 class="section__title">What it actually does for you</h2>
+    <p class="section__lede">
+      No setup beyond <code>/setup</code>. No new dashboards to learn. Three things you start getting from day one.
+    </p>
+  </div>
+
+  <div class="outcome-tiles">
+    <article class="outcome-tile">
+      <div class="outcome-tile__num">01</div>
+      <h3 class="outcome-tile__title">Automatic code review</h3>
+      <p class="outcome-tile__desc">
+        Every change you make — or that a contractor makes — gets reviewed by a senior-engineering-level reviewer before it ships. You see exactly what was caught and why, and decide what to do about it.
+      </p>
+    </article>
+
+    <article class="outcome-tile">
+      <div class="outcome-tile__num">02</div>
+      <h3 class="outcome-tile__title">Launch-readiness checks</h3>
+      <p class="outcome-tile__desc">
+        Before you push to customers, run one command and find out what's still missing — security, performance, accessibility, the lot. No surprise emails from users telling you about it.
+      </p>
+    </article>
+
+    <article class="outcome-tile">
+      <div class="outcome-tile__num">03</div>
+      <h3 class="outcome-tile__title">One place for all your products</h3>
+      <p class="outcome-tile__desc">
+        Every project you're building shows up in one inbox. Pull requests that need a look, issues someone's stuck on, anything that needs your attention — all in one screen, no tab-juggling.
+      </p>
+    </article>
+  </div>
+</section>
+
+<!-- ============================================================
+     WHO THIS IS FOR — explicit, so the right reader feels seen
+     ============================================================ -->
+<section class="section" id="who-this-is-for" aria-label="Who this is for">
+  <div class="section__head">
+    <span class="section__num">02 / WHO THIS IS FOR</span>
+    <h2 class="section__title">Who this is for</h2>
+    <p class="section__lede">
+      Three shapes of person we built this for. If you recognise yourself, keep reading.
+    </p>
+  </div>
+
+  <div class="audience">
+    <div class="audience__card">
+      <p class="audience__who">Solo founders shipping with AI</p>
+      <p class="audience__detail">
+        You're building the product alone, with Claude Code or Cursor doing most of the typing. You need the guardrails a real team would give you — without a real team.
+      </p>
+    </div>
+    <div class="audience__card">
+      <p class="audience__who">Non-technical founders running contractors</p>
+      <p class="audience__detail">
+        You're managing a small dev team or a contractor or two. You need to know the work is solid before it goes live, without reading every commit yourself.
+      </p>
+    </div>
+    <div class="audience__card">
+      <p class="audience__who">Small teams with no process yet</p>
+      <p class="audience__detail">
+        You've shipped your first version. Now you need real review, real testing, real release discipline — before things get harder to fix than they already are.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     PROOF / DOGFOOD — verifiable numbers from our own work
+     ============================================================ -->
+<section class="section section--alt" aria-label="Proof — our own engineering activity">
+  <div class="section__head">
+    <span class="section__num">03 / PROOF</span>
+    <h2 class="section__title">We use it on ourselves</h2>
+    <p class="section__lede">
+      ApexYard is built using ApexYard. These are real numbers from the framework's own GitHub history — every change you see here went through the same review and guardrails the tool installs in your fork.
+    </p>
+  </div>
+
+  <div class="hero__metrics" aria-label="ApexYard's own engineering activity" style="max-width: var(--max-w); margin: 0 auto; padding: 0 var(--gutter); border-left: 1px solid var(--rule); border-right: 1px solid var(--rule);">
+    <div class="hero__metric">
+      <strong>175</strong>
+      <span>PRs reviewed &amp; merged · last 90 days</span>
+    </div>
+    <div class="hero__metric">
+      <strong>7</strong>
+      <span>Production releases shipped (v0.1 → v1.3)</span>
+    </div>
+    <div class="hero__metric">
+      <strong>29</strong>
+      <span>Technical decisions on record (released to main)</span>
+    </div>
+    <div class="hero__metric">
+      <strong>13</strong>
+      <span>Bugs caught and fixed before users hit them</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     TERMINAL DEMO — moved below the fold. Excellent proof for
+     a technical evaluator who scrolls; would be intimidating
+     as a first impression for the target founder.
+     ============================================================ -->
+<section class="section" id="terminal-demo" aria-label="Terminal walkthrough">
+  <div class="section__head">
+    <span class="section__num">04 / FOR THE TECHNICALLY CURIOUS</span>
+    <h2 class="section__title">What one day looks like, in real terminal</h2>
+    <p class="section__lede">
+      If you'd rather skim the plain-English version, read <a href="/how-it-works" class="uline">how it works</a>. The replay below is for the technical friend you'll show this to.
+    </p>
+  </div>
+
+  <div class="hero__inner">
+
+    <div class="shell-demo shell-demo--tall rise rise-4" id="shell-lifecycle" aria-label="Demo of apexyard flows — one ticket lifecycle, /handover, /setup, /fan-out">
+      <div class="shell-demo__chrome">
+        <span class="shell-demo__dots" aria-hidden="true">
           <span class="shell-demo__dot"></span>
           <span class="shell-demo__dot"></span>
           <span class="shell-demo__dot is-warn"></span>
         </span>
-        <span class="shell-demo__title">claude code - apexyard - one ticket, start to finish</span>
-        <button type="button" class="shell-demo__replay" id="shell-lifecycle-replay" aria-label="Replay the lifecycle demo">replay ↻</button>
+        <div class="shell-demo__tabs" role="tablist" aria-label="apexyard demo flows">
+          <button type="button" class="shell-demo__tab is-active" role="tab" aria-selected="true"  data-tab="0">one ticket</button>
+          <button type="button" class="shell-demo__tab"           role="tab" aria-selected="false" data-tab="1">/handover</button>
+          <button type="button" class="shell-demo__tab"           role="tab" aria-selected="false" data-tab="2">/setup</button>
+          <button type="button" class="shell-demo__tab"           role="tab" aria-selected="false" data-tab="3">/fan-out</button>
+        </div>
+        <button type="button" class="shell-demo__replay" id="shell-lifecycle-replay" aria-label="Replay the active demo">replay ↻</button>
       </div>
       <div class="shell-demo__body" id="shell-lifecycle-body">
         <div class="line sys">Inbox:</div>
@@ -1384,7 +1758,7 @@ footer.foot {
         <div class="line ok">&nbsp;&nbsp;✓ tests pass locally</div>
         <div class="line">&nbsp;</div>
         <div class="line sys">Detected decision: papaparse vs csv-stringify</div>
-        <div class="line muted">&nbsp;&nbsp;AgDR-0014 · chose csv-stringify (zero deps)</div>
+        <div class="line muted">&nbsp;&nbsp;Decision recorded · chose csv-stringify (zero deps)</div>
         <div class="line">&nbsp;</div>
         <div class="line sys">Local checks:</div>
         <div class="line ok">&nbsp;&nbsp;✓ lint&nbsp;&nbsp;✓ types&nbsp;&nbsp;✓ 147 tests&nbsp;&nbsp;✓ 1.2mb build</div>
@@ -1397,7 +1771,7 @@ footer.foot {
         <div class="line sys">Rex reviewing a3f9c21...</div>
         <div class="line muted">&nbsp;&nbsp;Architecture · PASS (domain clean)</div>
         <div class="line muted">&nbsp;&nbsp;Tests&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;· 94% coverage</div>
-        <div class="line muted">&nbsp;&nbsp;AgDR&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;· AgDR-0014 linked</div>
+        <div class="line muted">&nbsp;&nbsp;Decision log · linked</div>
         <div class="line muted">&nbsp;&nbsp;Glossary&nbsp;&nbsp;&nbsp;&nbsp;· 5 terms</div>
         <div class="line ok">&nbsp;&nbsp;Verdict&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;· APPROVE - deferring to CEO</div>
         <div class="line">&nbsp;</div>
@@ -1437,30 +1811,11 @@ footer.foot {
     </div>
 
     <p class="install__caveat rise rise-4">
-      One command forks apexyard into your org and clones the fork locally. The fork <strong>is</strong> your ops repo - no nested installs, no symlinks. Full walkthrough in the <a href="#quickstart" class="uline">quickstart</a> below. Rename the fork to <code>your-org/ops</code> if you prefer - GitHub handles the rename cleanly.
+      One command forks apexyard into your org and clones the fork locally. The fork <strong>is</strong> your ops repo — no nested installs, no symlinks. Want the plain-English version of what happens next? Read <a href="/how-it-works" class="uline">how it works</a>. Want the technical setup? Jump to the <a href="#quickstart" class="uline">quickstart</a>.
     </p>
 
-    <div class="hero__metrics rise rise-5" aria-label="What you get">
-      <div class="hero__metric">
-        <strong>19</strong>
-        <span>Role definitions across 5 departments</span>
-      </div>
-      <div class="hero__metric">
-        <strong>32</strong>
-        <span>Skills (slash commands)</span>
-      </div>
-      <div class="hero__metric">
-        <strong>18</strong>
-        <span>Mechanical gates (shell hooks)</span>
-      </div>
-      <div class="hero__metric">
-        <strong>1</strong>
-        <span>Fork · your ops repo in one command</span>
-      </div>
-    </div>
-
-    <p class="hero__proof rise rise-5" aria-label="Stacks proven in production">
-      Proven shipping · <span class="kw">TypeScript</span> + AWS Lambda backends · <span class="kw">Next.js</span> web apps · <span class="kw">Chrome</span> extensions · native <span class="kw">Swift</span> macOS apps
+    <p class="hero__proof rise rise-5" aria-label="What apexyard works with">
+      Works with what you already use · <span class="kw">TypeScript</span> + AWS Lambda · <span class="kw">Next.js</span> web apps · <span class="kw">Chrome</span> extensions · native <span class="kw">Swift</span> macOS apps. The framework cares about review, gates, and process — not your stack.
     </p>
 
   </div>
@@ -1469,7 +1824,7 @@ footer.foot {
 <!-- ============================================================
      MANIFESTO - the SDLC loop, in one line
      ============================================================ -->
-<section class="manifesto" aria-label="What apexyard mechanically enforces">
+<section class="manifesto" aria-label="The simple rules everything else flows from">
   <div class="manifesto__inner">
     <p class="manifesto__text">
       Every pull request ties to a ticket.<br>
@@ -1485,10 +1840,10 @@ footer.foot {
 <section class="section section--alt" id="quickstart">
 
   <div class="section__head">
-    <span class="section__num">01 / QUICKSTART</span>
-    <h2 class="section__title">Get started in three steps</h2>
+    <span class="section__num">05 / QUICKSTART</span>
+    <h2 class="section__title">How do I get started?</h2>
     <p class="section__lede">
-      From fork to first command. Everything is public; no invite needed.
+      From fork to first command. Everything is public; no invite needed. If you'd rather see a day with it before installing, read <a href="/how-it-works" class="uline">how it works</a> first.
     </p>
   </div>
 
@@ -1517,7 +1872,7 @@ claude
     <article class="step step--wide" style="grid-column: 1 / -1;">
       <div class="step__num">03 - bring a project in, or capture an idea</div>
       <h3 class="step__title">Adopt, or originate</h3>
-      <p class="step__desc">Two entry points depending on what you walked in with. <code>/handover</code> takes an existing repo and generates an assessment + C4 L2 stub + registry entry. <code>/idea</code> captures a new product concept to the shared backlog so it doesn't evaporate.</p>
+      <p class="step__desc">Two entry points depending on what you walked in with. <code>/handover</code> takes an existing repo and generates an assessment of its shape, plus a starter architecture diagram, plus the registry entry. <code>/idea</code> captures a new product concept to the shared backlog so it doesn't evaporate.</p>
       <pre class="step__code"><span class="acc">/handover</span> &lt;repo-url&gt;   <span class="cm"># existing project → assessment + registry + architecture stub</span>
 <span class="acc">/idea</span>                  <span class="cm"># new concept → ideas-backlog.md, optional GitHub issue</span></pre>
     </article>
@@ -1532,10 +1887,10 @@ claude
 <section class="section" id="examples">
 
   <div class="section__head">
-    <span class="section__num">02 / WALKTHROUGHS</span>
-    <h2 class="section__title">What it actually feels like to use</h2>
+    <span class="section__num">06 / WALKTHROUGHS</span>
+    <h2 class="section__title">Three real situations, three real outcomes</h2>
     <p class="section__lede">
-      Three flows - one for a feature, one for the portfolio, one for a risky change. Each starts with a specific pain and ends with the exact gates that handled it.
+      Each walkthrough starts with a moment you'll recognise — and shows what apexyard does about it. Below the screens are technical captions for the friend who's vetting this with you.
     </p>
   </div>
 
@@ -1549,7 +1904,7 @@ claude
       <pre class="demo__body"><span class="muted"># "I have an idea. Ship it without forgetting a step."</span>
 
 <span class="you">› /idea  →  /write-spec  →  /decide</span>
-<span class="ok">  ideas-backlog.md · PRD-0012 · AgDR-0021</span>
+<span class="ok">  Idea captured · spec drafted · decision recorded</span>
 
 <span class="you">› /start-ticket 178     <span class="muted">(labels the session)</span></span>
 <span class="muted"># code, tests, push…</span>
@@ -1563,7 +1918,7 @@ claude
 <span class="you">› /approve-merge 178     <span class="muted">(per-PR CEO nod)</span></span>
 <span class="you">› gh pr merge 178</span>
 <span class="ok">  ✓ merged · #178 → QA state, not Done yet</span></pre>
-      <div class="demo__caption">One trail: 6 skills · 2 agents · 4 hooks · 1 AgDR · 1 PRD. Two independent approvals (Rex + CEO), both SHA-bound. The marker-based merge gate is a shell hook, not a social convention.</div>
+      <div class="demo__caption">From idea to live feature, with a real code review and a real launch sign-off in the middle. The reviewer is a senior-engineering-level AI agent (Rex) and the sign-off is yours — both have to happen before anything ships, and the framework refuses to merge until they do.</div>
     </article>
 
     <article class="demo">
@@ -1589,7 +1944,7 @@ claude
 <span class="you">› /stakeholder-update weekly</span>
 <span class="ok">  Drafted projects/updates/2026-04-17.md
   - rollup across all 5 projects</span></pre>
-      <div class="demo__caption">6 skills read one registry file. Five products surface from a single prompt. Portfolio isn't a view on top of separate repos - it IS the registry.</div>
+      <div class="demo__caption">One screen for every project you're building. No tab-juggling, no five different GitHub repos. The same registry powers the Friday stakeholder update — generated from the actual week's activity, not from what you remember.</div>
     </article>
 
     <article class="demo demo--wide">
@@ -1600,24 +1955,24 @@ claude
       <pre class="demo__body"><span class="muted"># "Just drop a column. Can't be that hard."</span>
 
 <span class="you">› edit prisma/schema.prisma</span>
-<span class="blk">BLOCKED:</span> migration files need a labelled ticket
-<span class="ag">  hook: require-migration-ticket.sh</span>
+<span class="blk">BLOCKED:</span> database changes need a real plan first
+<span class="ag">  apexyard: rollback plan + tested first</span>
 
-<span class="you">› /migration curios-dog</span>
+<span class="you">› /migration billing-api</span>
 <span class="ai">  → rollback plan? (required, non-empty)
   → estimated downtime?
-  → cross-service consumers?
+  → other services that read this?
   → data volume?
-  → observability?</span>
-<span class="ok">  ✓ AgDR-0047 · issue #214 labelled `migration`
-  ✓ body refs AgDR - gate 3 satisfied</span>
+  → how will you know it worked?</span>
+<span class="ok">  ✓ Decision recorded · ticket #214 created
+  ✓ Plan is complete — edit allowed</span>
 
 <span class="you">› /start-ticket #214 · retry the edit</span>
-<span class="ok">  ✓ all 3 gates pass · edit allowed</span>
+<span class="ok">  ✓ all checks pass · safe to proceed</span>
 
-<span class="ag">Rex: "analytics ETL reads user_profiles nightly -
-confirm it skips the missing column before merge."</span></pre>
-      <div class="demo__caption">3 hooks, 2 skills, 1 AgDR - all before a single byte of schema changed. Questions that would surface at 2am during rollback get forced upfront, when your team is awake.</div>
+<span class="ag">Rex: "analytics job reads this column every night —
+confirm it skips the missing column before you ship."</span></pre>
+      <div class="demo__caption">The "I forgot to think about rollback" mistake gets caught at 5pm on Friday instead of at 2am on Saturday. The framework refuses to let you touch the database until the plan is real — and the reviewer catches the downstream system you forgot about.</div>
     </article>
 
   </div>
@@ -1631,60 +1986,60 @@ confirm it skips the missing column before merge."</span></pre>
 <section class="section" id="in-the-box">
 
   <div class="section__head">
-    <span class="section__num">04 / WHAT'S IN THE BOX</span>
-    <h2 class="section__title">What you can actually do</h2>
+    <span class="section__num">07 / WHAT'S IN THE BOX</span>
+    <h2 class="section__title">What's in the toolbox</h2>
     <p class="section__lede">
-      Everything below is already wired in your fork. Nothing to install, nothing to configure beyond <code>/setup</code>.
+      Section 01 told you what ApexYard does for you. This section is the inventory — the actual reviews, audits, ticketing, and portfolio surfaces you get when you fork it. Outcome on the left of each row, technical detail (counts, names, file paths) on the right.
     </p>
   </div>
 
   <div class="layers">
 
     <article class="layer">
-      <div class="layer__num">roles · 19</div>
-      <h3 class="layer__title">Activate by trigger</h3>
+      <div class="layer__num">reviews like a real team</div>
+      <h3 class="layer__title">Reviews from a full engineering team — without hiring one</h3>
       <p class="layer__desc">
-        PR touches auth → Security Auditor activates. Ticket hits QA → QA Engineer. Migration edit → Data Engineer + migration AgDR. Each role has CAN / CANNOT lists - it won't step outside its lane.
+        The reviewer changes based on what you're working on. Touching auth code? A security reviewer takes a look. Touching the database? Someone who specialises in database changes walks you through the rollback plan. <span class="dim">Behind the scenes: 19 role definitions across 5 departments, each with its own checklist and boundaries.</span>
       </p>
     </article>
 
     <article class="layer">
-      <div class="layer__num">skills · 33 slash commands</div>
-      <h3 class="layer__title">One prompt, one thing</h3>
+      <div class="layer__num">one prompt, one job</div>
+      <h3 class="layer__title">Tools for every step of shipping software</h3>
       <p class="layer__desc">
-        <code>/handover</code> adopts a project. <code>/idea</code> captures a concept. <code>/inbox</code>, <code>/status</code>, <code>/tasks</code> triage the portfolio. <code>/decide</code> records a technical call as an AgDR. <code>/launch-check</code> runs an 8-dimension readiness audit. <code>/c4</code> generates L1 + L2 architecture diagrams from a codebase.
+        Want to adopt a project you've inherited? <code>/handover</code>. Want to capture an idea before it evaporates? <code>/idea</code>. Want to know what's waiting on you across every product? <code>/inbox</code>. Want a launch-readiness check before customers see it? <code>/launch-check</code>. <span class="dim">54 of these in total — each one is a focused workflow with safety rails.</span>
       </p>
     </article>
 
     <article class="layer">
-      <div class="layer__num">hooks · 18 shell scripts</div>
-      <h3 class="layer__title">Rules that fire themselves</h3>
+      <div class="layer__num">guardrails that fire themselves</div>
+      <h3 class="layer__title">Guardrails that stop bad code from shipping — automatically</h3>
       <p class="layer__desc">
-        Ticket-first on every edit. Migration gate on schema paths. Two-marker merge (Rex + CEO), SHA-bound, invalidates on every commit. Red CI block. Secrets scanner. Design-review gate on UI PRs. Upstream-drift banner at session start.
+        Every edit needs a real ticket behind it. Every database change needs a rollback plan. Every merge needs a real review. Secrets in code get caught before they're committed. <span class="dim">Mechanically enforced — 32 small scripts that fire at the right moments, so you don't have to remember to check.</span>
       </p>
     </article>
 
     <article class="layer">
-      <div class="layer__num">agents · 5 sub-agents</div>
-      <h3 class="layer__title">Reviewers that don't rubber-stamp</h3>
+      <div class="layer__num">reviewers that don't rubber-stamp</div>
+      <h3 class="layer__title">A real code review on every change</h3>
       <p class="layer__desc">
-        Rex (code review) checks architecture + tests + AgDR links + glossary. Shield (security) flags auth / crypto / secrets. Guardian (deps) scans vulnerabilities + licences. PR Manager + Ticket Manager handle the orchestration.
+        The reviewer reads what changed and how the rest of the system reacts to it — not just the diff. It flags missing tests, surfaces decisions you made silently, and refuses to approve work that bypasses the team's standards. Pushing new code invalidates the previous approval, so nothing slips through after the review is done. <span class="dim">Powered by 23 specialised reviewer agents under the hood.</span>
       </p>
     </article>
 
     <article class="layer layer--wide layer--split" style="grid-column: 1 / -1;">
       <div class="layer__half">
-        <div class="layer__num">portfolio &middot; one fork, N products</div>
-        <h3 class="layer__title">One inbox across everything</h3>
+        <div class="layer__num">one inbox across everything</div>
+        <h3 class="layer__title">Every product, one screen</h3>
         <p class="layer__desc">
-          <code>apexyard.projects.yaml</code> at your fork root lists every repo you manage. Skills like <code>/inbox</code>, <code>/status</code>, <code>/tasks</code>, <code>/stakeholder-update</code> aggregate across it. One prompt, every project. Add a project with <code>/handover</code>; sync with upstream via <code>/update</code>.
+          Run <code>/inbox</code> and see every pull request waiting on you, every issue stuck, every comment unanswered — across every product you're building. Run <code>/stakeholder-update weekly</code> on Friday and the rollup writes itself from the actual week's activity. <span class="dim">Backed by a one-file registry at your fork root; add a project with <code>/handover</code>, sync the framework with <code>/update</code>.</span>
         </p>
       </div>
       <div class="layer__half">
-        <div class="layer__num">CI &middot; 7 golden-path workflows</div>
-        <h3 class="layer__title">Drop-in GitHub Actions</h3>
+        <div class="layer__num">ready-made CI</div>
+        <h3 class="layer__title">CI pipelines that just work</h3>
         <p class="layer__desc">
-          At <code>golden-paths/pipelines/</code>: <code>ci.yml</code>, <code>code-quality.yml</code>, <code>security.yml</code>, <code>dependency-audit.yml</code>, <code>pr-title-check.yml</code>, <code>review-check.yml</code>, <code>seo-check.yml</code>. Copy what you need into each project's <code>.github/workflows/</code>.
+          Seven ready-made GitHub Actions pipelines you can drop into any project — code quality, security scans, dependency audits, PR-title and review checks, SEO checks. No starting from scratch, no copy-pasting from someone else's repo. <span class="dim">Lives at <code>golden-paths/pipelines/</code>.</span>
         </p>
       </div>
     </article>
@@ -1699,12 +2054,16 @@ confirm it skips the missing column before merge."</span></pre>
 <section class="final">
   <div class="final__inner">
     <div>
-      <h2>Fork it, clone it,<br>run <span class="acc">claude</span>.</h2>
+      <h2>Ship like you finally<br>have <span class="acc">the team</span>.</h2>
       <p>
-        MIT. Plain markdown and shell. Fork freely, edit any rule, hook, or skill to match your team.
+        Fork it, run <code>/setup</code>, start your first day. Free and open source — fork freely, change anything to match how you work. No SaaS, no monthly fee, no lock-in.
       </p>
     </div>
     <div class="final__actions">
+      <a href="/how-it-works" class="final__btn">
+        <span>see what a day looks like</span>
+        <span class="arrow">→</span>
+      </a>
       <a href="https://github.com/me2resh/apexyard" class="final__btn" target="_blank" rel="noopener">
         <span>view on github</span>
         <span class="arrow">→</span>
@@ -1712,10 +2071,6 @@ confirm it skips the missing column before merge."</span></pre>
       <a href="#quickstart" class="final__btn">
         <span>back to quickstart</span>
         <span class="arrow">↑</span>
-      </a>
-      <a href="https://github.com/me2resh/apexyard/issues" class="final__btn" target="_blank" rel="noopener">
-        <span>report an issue</span>
-        <span class="arrow">→</span>
       </a>
     </div>
   </div>
@@ -1726,14 +2081,18 @@ confirm it skips the missing column before merge."</span></pre>
 <!-- ============================================================
      FOOTER
      ============================================================ -->
-<footer class="foot" role="contentinfo">
-  <div class="foot__inner">
-    <span>Built by <a href="https://me2resh.com" target="_blank" rel="noopener">me2resh</a> · MIT · plain markdown · zero dependencies</span>
-    <span>
-      <a href="https://github.com/me2resh" target="_blank" rel="noopener">github</a> ·
-      <a href="https://twitter.com/me2resh" target="_blank" rel="noopener">twitter</a> ·
-      <a href="https://me2resh.com" target="_blank" rel="noopener">blog</a>
-    </span>
+<footer class="page-footer" role="contentinfo">
+  <div class="page-footer__inner">
+    <div class="page-footer__brand">yard.apexscript.com — fork the framework, register your repos, ship.</div>
+    <nav class="page-footer__nav" aria-label="Footer">
+      <a href="/how-it-works">how it works</a>
+      <a href="#quickstart">quickstart</a>
+      <a href="/architecture">architecture</a>
+      <a href="/skills">skills</a>
+      <a href="https://github.com/me2resh/apexyard/releases" target="_blank" rel="noopener">changelog ↗</a>
+      <a href="https://github.com/me2resh/apexyard" target="_blank" rel="noopener">github ↗</a>
+    </nav>
+    <div class="page-footer__meta">© 2026 <a href="https://me2resh.com" target="_blank" rel="noopener">me2resh</a> · ApexYard · open source · plain markdown · zero dependencies</div>
   </div>
 </footer>
 
@@ -1819,92 +2178,207 @@ confirm it skips the missing column before merge."</span></pre>
   a.addEventListener('click', assemble);
 })();
 
-// ---- full lifecycle shell animation (hero) ----
-// The demo lives in the hero so it's visible on load - IntersectionObserver
-// still used so the play trigger stays consistent, and the hasPlayed gate
-// ensures it only auto-plays once. Falls back to delayed auto-play if IO is
-// missing. Respects prefers-reduced-motion - static content stays, no
-// animation. The small 17rem shell-demo--tall viewport scrolls to the
-// bottom on each new line so old lines push up and out, like a terminal.
+// ---- multi-tab shell animation (hero) ----
+// One terminal, four flow scripts (one per tab). The active tab plays
+// line-by-line; on completion the demo auto-advances to the next tab and
+// loops at the end. Tab buttons are also clickable to jump directly.
+//
+// Lives in the hero so it's visible on load. IntersectionObserver kicks
+// off the auto-play once the demo scrolls into view; auto-advance keeps
+// going from there. Respects prefers-reduced-motion (static content stays,
+// no JS-driven animation, no auto-advance).
 (function () {
   var body = document.getElementById('shell-lifecycle-body');
   var replay = document.getElementById('shell-lifecycle-replay');
   var wrapper = document.getElementById('shell-lifecycle');
+  var tabBtns = wrapper ? wrapper.querySelectorAll('.shell-demo__tab') : [];
   if (!body || !wrapper) return;
 
   if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     return;
   }
 
-  // Script: [type, text, delayAfterMs, typeSpeedMs (0 = instant)]
+  // Each script entry: [type, text, delayAfterMs, typeSpeedMs (0 = instant)]
   // Types: sys (narrated agent action / header), you (human input, typed),
-  //        ok (success line), muted (dim detail), blank (empty spacer).
-  // Autonomous by default - the ONLY human touchpoints are the two `you`
-  // responses (plan approval + push approval) and the CEO 👍 wait/marker.
-  var script = [
-    ['sys',   'Inbox:',                                                                    200, 0],
-    ['muted', '  #58 · Add CSV export to reports · P1 · your-org/billing-api',             800, 0],
-    ['blank', '',                                                                          200, 0],
-    ['sys',   'Picking up #58...',                                                         400, 0],
-    ['ok',    '  ✓ branch feature/GH-58-csv-export',                                       300, 0],
-    ['muted', '  Tech Lead role: planning',                                                800, 0],
-    ['blank', '',                                                                          200, 0],
-    ['sys',   'Plan for #58:',                                                             350, 0],
-    ['muted', '  1. CsvExporter service (domain layer)',                                   250, 0],
-    ['muted', '  2. GET /reports/:id/export endpoint',                                     250, 0],
-    ['muted', '  3. 12 unit + 1 integration test',                                         450, 0],
-    ['sys',   'Approve plan? (y/n)',                                                       500, 0],
-    ['you',   'y',                                                                         700, 200],
-    ['blank', '',                                                                          200, 0],
-    ['muted', 'Backend Engineer role: implementing',                                       500, 0],
-    ['ok',    '  ✓ src/domain/csv-exporter.ts',                                            300, 0],
-    ['ok',    '  ✓ src/handlers/export-report.handler.ts',                                 300, 0],
-    ['ok',    '  ✓ tests pass locally',                                                    700, 0],
-    ['blank', '',                                                                          200, 0],
-    ['sys',   'Detected decision: papaparse vs csv-stringify',                             400, 0],
-    ['muted', '  AgDR-0014 · chose csv-stringify (zero deps)',                             800, 0],
-    ['blank', '',                                                                          200, 0],
-    ['sys',   'Local checks:',                                                             350, 0],
-    ['ok',    '  ✓ lint  ✓ types  ✓ 147 tests  ✓ 1.2mb build',                             800, 0],
-    ['blank', '',                                                                          200, 0],
-    ['sys',   'Ready to push PR #84?',                                                     500, 0],
-    ['you',   'y',                                                                         700, 200],
-    ['blank', '',                                                                          200, 0],
-    ['ok',    'Pushed · Opened PR #84 · feat(#58): add CSV export',                        800, 0],
-    ['blank', '',                                                                          200, 0],
-    ['sys',   'Rex reviewing a3f9c21...',                                                  500, 0],
-    ['muted', '  Architecture · PASS (domain clean)',                                      250, 0],
-    ['muted', '  Tests        · 94% coverage',                                             250, 0],
-    ['muted', '  AgDR         · AgDR-0014 linked',                                         250, 0],
-    ['muted', '  Glossary     · 5 terms',                                                  300, 0],
-    ['ok',    '  Verdict      · APPROVE - deferring to CEO',                               800, 0],
-    ['blank', '',                                                                          200, 0],
-    ['sys',   'Waiting for CEO 👍',                                                       1500, 0],
-    ['blank', '',                                                                          200, 0],
-    ['ok',    'CEO 👍',                                                                    500, 0],
-    ['ok',    '  ✓ squashed as 8b2f4c1',                                                   250, 0],
-    ['ok',    '  ✓ branch deleted',                                                        250, 0],
-    ['ok',    '  ✓ #58 → QA state (not Done yet)',                                         700, 0],
-    ['blank', '',                                                                          200, 0],
-    ['sys',   'Pipeline on main:',                                                         350, 0],
-    ['ok',    '  ✓ lint  ✓ test  ✓ build  ✓ deploy-staging',                               900, 0],
-    ['blank', '',                                                                          200, 0],
-    ['muted', 'QA Engineer role: verifying on staging',                                    500, 0],
-    ['ok',    '  ✓ AC1 · export button renders',                                           250, 0],
-    ['ok',    '  ✓ AC2 · CSV columns + escaping correct',                                  250, 0],
-    ['ok',    '  ✓ AC3 · 10k rows in <5s',                                                 250, 0],
-    ['ok',    '  ✓ regression clean',                                                      350, 0],
-    ['ok',    'QA sign-off: #58 ready for Done',                                           900, 0],
-    ['blank', '',                                                                          200, 0],
-    ['ok',    'Done · #58 · 14m 32s dev + 3m 10s QA',                                        0, 0]
+  //        cmd (slash-command invocation, typed), ok (success line),
+  //        muted (dim detail), blank (empty spacer).
+  // Scripts roughly match in length so the auto-advance cadence feels even.
+  var scripts = [
+    /* tab 0 — one ticket lifecycle (the canonical headline flow) */
+    [
+      ['sys',   'Inbox:',                                                                    200, 0],
+      ['muted', '  #58 · Add CSV export to reports · P1 · your-org/billing-api',             800, 0],
+      ['blank', '',                                                                          200, 0],
+      ['sys',   'Picking up #58...',                                                         400, 0],
+      ['ok',    '  ✓ branch feature/GH-58-csv-export',                                       300, 0],
+      ['muted', '  Tech Lead role: planning',                                                800, 0],
+      ['blank', '',                                                                          200, 0],
+      ['sys',   'Plan for #58:',                                                             350, 0],
+      ['muted', '  1. CsvExporter service (domain layer)',                                   250, 0],
+      ['muted', '  2. GET /reports/:id/export endpoint',                                     250, 0],
+      ['muted', '  3. 12 unit + 1 integration test',                                         450, 0],
+      ['sys',   'Approve plan? (y/n)',                                                       500, 0],
+      ['you',   'y',                                                                         700, 200],
+      ['blank', '',                                                                          200, 0],
+      ['muted', 'Backend Engineer role: implementing',                                       500, 0],
+      ['ok',    '  ✓ src/domain/csv-exporter.ts',                                            300, 0],
+      ['ok',    '  ✓ src/handlers/export-report.handler.ts',                                 300, 0],
+      ['ok',    '  ✓ tests pass locally',                                                    700, 0],
+      ['blank', '',                                                                          200, 0],
+      ['sys',   'Detected decision: papaparse vs csv-stringify',                             400, 0],
+      ['muted', '  Decision recorded · chose csv-stringify (zero deps)',                     800, 0],
+      ['blank', '',                                                                          200, 0],
+      ['sys',   'Local checks:',                                                             350, 0],
+      ['ok',    '  ✓ lint  ✓ types  ✓ 147 tests  ✓ 1.2mb build',                             800, 0],
+      ['blank', '',                                                                          200, 0],
+      ['sys',   'Ready to push PR #84?',                                                     500, 0],
+      ['you',   'y',                                                                         700, 200],
+      ['blank', '',                                                                          200, 0],
+      ['ok',    'Pushed · Opened PR #84 · feat(#58): add CSV export',                        800, 0],
+      ['blank', '',                                                                          200, 0],
+      ['sys',   'Rex reviewing a3f9c21...',                                                  500, 0],
+      ['muted', '  Architecture · PASS (domain clean)',                                      250, 0],
+      ['muted', '  Tests        · 94% coverage',                                             250, 0],
+      ['muted', '  Decision log · linked',                                                  250, 0],
+      ['muted', '  Glossary     · 5 terms',                                                  300, 0],
+      ['ok',    '  Verdict      · APPROVE - deferring to CEO',                               800, 0],
+      ['blank', '',                                                                          200, 0],
+      ['sys',   'Waiting for CEO 👍',                                                       1500, 0],
+      ['blank', '',                                                                          200, 0],
+      ['ok',    'CEO 👍',                                                                    500, 0],
+      ['ok',    '  ✓ squashed as 8b2f4c1',                                                   250, 0],
+      ['ok',    '  ✓ branch deleted',                                                        250, 0],
+      ['ok',    '  ✓ #58 → QA state (not Done yet)',                                         700, 0],
+      ['blank', '',                                                                          200, 0],
+      ['sys',   'Pipeline on main:',                                                         350, 0],
+      ['ok',    '  ✓ lint  ✓ test  ✓ build  ✓ deploy-staging',                               900, 0],
+      ['blank', '',                                                                          200, 0],
+      ['muted', 'QA Engineer role: verifying on staging',                                    500, 0],
+      ['ok',    '  ✓ AC1 · export button renders',                                           250, 0],
+      ['ok',    '  ✓ AC2 · CSV columns + escaping correct',                                  250, 0],
+      ['ok',    '  ✓ AC3 · 10k rows in <5s',                                                 250, 0],
+      ['ok',    '  ✓ regression clean',                                                      350, 0],
+      ['ok',    'QA sign-off: #58 ready for Done',                                           900, 0],
+      ['blank', '',                                                                          200, 0],
+      ['ok',    'Done · #58 · 14m 32s dev + 3m 10s QA',                                     1200, 0]
+    ],
+
+    /* tab 1 — /handover · adopt an external repo into the portfolio */
+    [
+      ['you',   '/handover legacy-billing-api ../legacy-billing-api',                        900, 28],
+      ['blank', '',                                                                          200, 0],
+      ['sys',   'Reading repo...',                                                           500, 0],
+      ['muted', '  47 files · 12 routes · TypeScript + AWS Lambda',                          400, 0],
+      ['muted', '  No CI · no .env · 18 open issues unstaged',                               700, 0],
+      ['blank', '',                                                                          200, 0],
+      ['sys',   'Quality risks (top 3):',                                                    400, 0],
+      ['muted', '  - No test coverage on /reports/* routes',                                 250, 0],
+      ['muted', '  - CI not configured (golden-paths/pipelines/ci.yml ready to copy)',       250, 0],
+      ['muted', '  - 18-issue backlog needs triage with previous owner',                     600, 0],
+      ['blank', '',                                                                          200, 0],
+      ['sys',   'Roles to activate: Backend Engineer · QA · Tech Lead',                      700, 0],
+      ['blank', '',                                                                          200, 0],
+      ['sys',   'Append to apexyard.projects.yaml? (y/n)',                                   500, 0],
+      ['you',   'y',                                                                         600, 200],
+      ['blank', '',                                                                          200, 0],
+      ['ok',    '  ✓ projects/legacy-billing-api/handover-assessment.md',                    350, 0],
+      ['ok',    '  ✓ projects/legacy-billing-api/architecture/container.md (stub)',          350, 0],
+      ['ok',    '  ✓ apexyard.projects.yaml updated',                                        800, 0],
+      ['blank', '',                                                                          200, 0],
+      ['sys',   'Suggested next steps:',                                                     350, 0],
+      ['muted', '  /status legacy-billing-api      · see project state',                     250, 0],
+      ['muted', '  /audit-deps legacy-billing-api · security baseline',                      250, 0],
+      ['muted', '  /code-review (most-recent PR)  · calibrate Rex on the team\'s style',     650, 0],
+      ['blank', '',                                                                          200, 0],
+      ['ok',    'Done · legacy-billing-api adopted · 2m 48s',                               1200, 0]
+    ],
+
+    /* tab 2 — /setup · first-run framework bootstrap on a fresh fork */
+    [
+      ['you',   '/setup',                                                                    900, 35],
+      ['blank', '',                                                                          200, 0],
+      ['sys',   'onboarding.yaml has placeholder values.',                                   400, 0],
+      ['sys',   'Tell me about your company and tech stack:',                                700, 0],
+      ['you',   'three-person SaaS · property mgmt · TS + React + AWS SAM',                  900, 22],
+      ['blank', '',                                                                          200, 0],
+      ['sys',   'Parsed:',                                                                   300, 0],
+      ['muted', '  company   · PropManager',                                                 250, 0],
+      ['muted', '  team size · 3',                                                           250, 0],
+      ['muted', '  stack     · TypeScript / React / AWS SAM / DynamoDB',                     600, 0],
+      ['blank', '',                                                                          200, 0],
+      ['sys',   'Any private projects? (y / n / paid GitHub plan)',                          500, 0],
+      ['you',   'n',                                                                         600, 200],
+      ['blank', '',                                                                          200, 0],
+      ['sys',   'Proposed config:',                                                          350, 0],
+      ['muted', '  defaults    · trunk-based · GitHub Issues · 1-week sprints',              250, 0],
+      ['muted', '  ticket ref  · GH · branch: feature/GH-N-desc',                            250, 0],
+      ['muted', '  PR title    · type(#N): description',                                     350, 0],
+      ['sys',   'Accept? (y/n)',                                                             500, 0],
+      ['you',   'y',                                                                         600, 200],
+      ['blank', '',                                                                          200, 0],
+      ['ok',    '  ✓ onboarding.yaml staged (review with git diff --cached)',                700, 0],
+      ['blank', '',                                                                          200, 0],
+      ['sys',   'Register your first project? (y/n)',                                        400, 0],
+      ['you',   'y · your-org/propmanager-api',                                              900, 24],
+      ['ok',    '  ✓ apexyard.projects.yaml updated',                                        700, 0],
+      ['blank', '',                                                                          200, 0],
+      ['ok',    'All set · /handover propmanager-api when you have the repo locally',       1200, 0]
+    ],
+
+    /* tab 3 — /fan-out · spawn N parallel agents on independent tickets */
+    [
+      ['you',   '/fan-out · #42, #43, #44',                                                  900, 28],
+      ['blank', '',                                                                          200, 0],
+      ['sys',   'Plan:',                                                                     350, 0],
+      ['muted', '  #42 · Add Stripe webhook       · general-purpose · worktree',             250, 0],
+      ['muted', '  #43 · Migrate jobs to BullMQ   · general-purpose · worktree',             250, 0],
+      ['muted', '  #44 · Audit auth flow          · security-reviewer · read-only',          400, 0],
+      ['sys',   'File-independent · no shared writes · spawn 3 in parallel? (y/n)',          500, 0],
+      ['you',   'y',                                                                         600, 200],
+      ['blank', '',                                                                          200, 0],
+      ['sys',   'Spawning 3 agents...',                                                      500, 0],
+      ['ok',    '  [#42] branch feature/GH-42-stripe-webhook',                               220, 0],
+      ['ok',    '  [#43] branch feature/GH-43-bullmq-migration',                             220, 0],
+      ['muted', '  [#44] reading auth/* (35 files)...',                                      700, 0],
+      ['blank', '',                                                                          200, 0],
+      ['muted', '  [#42] webhook handler · idempotency key · 8 tests · all green',           350, 0],
+      ['muted', '  [#43] migration plan recorded · rollback tested on staging',             350, 0],
+      ['muted', '  [#44] findings: token rotation gap · no session timeout',                 500, 0],
+      ['blank', '',                                                                          200, 0],
+      ['ok',    '  [#42] PR #91 opened · Rex auto-review running',                           300, 0],
+      ['ok',    '  [#43] PR #92 opened · migration plan linked',                            300, 0],
+      ['ok',    '  [#44] audit report at projects/web/audit-2026-05.md',                     650, 0],
+      ['blank', '',                                                                          200, 0],
+      ['ok',    'Done · 3 tickets · 2 PRs · 1 audit report',                                 350, 0],
+      ['muted', '  ~16m wall-clock vs ~45m serial',                                         1200, 0]
+    ]
   ];
 
   var timeouts = [];
   var hasPlayed = false;
+  var activeTab = 0;
+  var advancing = false;
+  var manualOverride = false;   // set true when the user clicks a tab or replays manually
 
   function clearTimeouts() {
     timeouts.forEach(function (t) { clearTimeout(t); });
     timeouts = [];
+  }
+
+  function setActiveTab(idx) {
+    activeTab = idx;
+    tabBtns.forEach(function (btn, i) {
+      var on = (i === idx);
+      btn.classList.toggle('is-active', on);
+      btn.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    var titles = ['claude code · one ticket, start to finish',
+                  'claude code · /handover · adopt external repo',
+                  'claude code · /setup · first-run bootstrap',
+                  'claude code · /fan-out · parallel agents'];
+    if (wrapper && titles[idx]) {
+      wrapper.setAttribute('aria-label', 'Demo: ' + titles[idx]);
+    }
   }
 
   function typeInto(target, text, speed, done) {
@@ -1927,19 +2401,34 @@ confirm it skips the missing column before merge."</span></pre>
   }
 
   function scrollToBottom() {
-    // Snap to the bottom after a new line lands. Using scrollHeight
-    // directly keeps it cheap and matches real-terminal behaviour.
     body.scrollTop = body.scrollHeight;
   }
 
-  function play() {
+  function play(tabIdx) {
     clearTimeouts();
+    advancing = false;
+    setActiveTab(tabIdx);
     body.innerHTML = '';
     body.scrollTop = 0;
+    var script = scripts[tabIdx];
     var i = 0;
 
     function next() {
-      if (i >= script.length) return;
+      if (i >= script.length) {
+        // End of script: pause briefly, then auto-advance to the next tab.
+        // The user can interrupt by clicking a tab or pressing replay.
+        if (!advancing) {
+          advancing = true;
+          var nextTab = (tabIdx + 1) % scripts.length;
+          timeouts.push(setTimeout(function () {
+            // If the user clicked a different tab during the pause, the
+            // tab-click handler already kicked off a new play() — don't
+            // override that.
+            if (activeTab === tabIdx) play(nextTab);
+          }, 1800));
+        }
+        return;
+      }
       var entry = script[i];
       var type = entry[0];
       var text = entry[1];
@@ -1959,8 +2448,9 @@ confirm it skips the missing column before merge."</span></pre>
         return;
       }
 
-      if (type === 'you') {
-        // The ONLY type with a prompt - human input marker
+      if (type === 'you' || type === 'cmd') {
+        // The two typed types — `you` for prompt responses, `cmd` for
+        // slash-command invocations. Both render with a `>` prompt.
         var prompt = document.createElement('span');
         prompt.className = 'prompt';
         prompt.textContent = '> ';
@@ -1973,8 +2463,6 @@ confirm it skips the missing column before merge."</span></pre>
           timeouts.push(setTimeout(next, delayAfter));
         });
       } else {
-        // sys / ok / muted / (any other) - autonomous agent output,
-        // rendered as plain text with the type class driving colour
         line.textContent = text;
         scrollToBottom();
         i++;
@@ -1985,35 +2473,49 @@ confirm it skips the missing column before merge."</span></pre>
     next();
   }
 
+  // Tab buttons: click jumps directly to that tab's flow.
+  tabBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var idx = parseInt(btn.getAttribute('data-tab'), 10);
+      if (isNaN(idx)) idx = 0;
+      hasPlayed = true;
+      manualOverride = true;
+      play(idx);
+    });
+  });
+
   if (replay) {
     replay.style.display = 'inline-block';
     replay.addEventListener('click', function () {
       hasPlayed = true;
-      play();
+      manualOverride = true;
+      play(activeTab);
     });
   }
 
-  // Intersection observer - auto-play ONCE when the demo scrolls into view
+  // IntersectionObserver — auto-play tab 0 once the demo scrolls into view;
+  // auto-advance carries the loop from there.
   if ('IntersectionObserver' in window) {
     var io = new IntersectionObserver(function (entries) {
       entries.forEach(function (entry) {
         if (entry.isIntersecting && !hasPlayed) {
           hasPlayed = true;
-          timeouts.push(setTimeout(play, 500));
+          timeouts.push(setTimeout(function () { play(0); }, 500));
           io.unobserve(entry.target);
         }
       });
     }, { threshold: 0.3 });
     io.observe(wrapper);
   } else {
-    // Fallback: auto-play on page load after a delay
+    // Fallback: auto-play on page load after a delay.
     timeouts.push(setTimeout(function () {
-      if (!hasPlayed) { hasPlayed = true; play(); }
+      if (!hasPlayed) { hasPlayed = true; play(0); }
     }, 3000));
   }
 })();
 </script>
 
+<!-- begin: consent — keep in sync across all site/*.html pages (#399) -->
 <!-- ============================================================
      COOKIE CONSENT BANNER
      Hidden if a prior choice is stored. On Accept, updates gtag
@@ -2064,6 +2566,8 @@ confirm it skips the missing column before merge."</span></pre>
   });
 })();
 </script>
+<!-- end: consent -->
 
+<script src="/copy-for-ai.js" defer></script>
 </body>
 </html>

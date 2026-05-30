@@ -1,12 +1,24 @@
 ---
 name: inbox
-description: Show every item across managed projects that needs the user's attention — PRs to review, issues assigned to them, comments to respond to, blockers. Use to triage the day.
+description: Show every item across managed projects needing the user's attention — PRs, assigned issues, comments, blockers.
 allowed-tools: Bash, Read, Grep, Glob
 ---
 
 # /inbox — Items Needing Your Attention
 
 Aggregates everything that's currently waiting on **you** across the projects ApexYard manages. Designed to be the first thing you run in a session.
+
+## Path resolution
+
+Read the registry path via `portfolio_registry`, the per-project docs dir via `portfolio_projects_dir`, and the ideas backlog via `portfolio_ideas_backlog` — all from `.claude/hooks/_lib-portfolio-paths.sh`. Source the helper at the top of any bash block that touches those paths:
+
+```bash
+source "$(git rev-parse --show-toplevel)/.claude/hooks/_lib-read-config.sh"
+source "$(git rev-parse --show-toplevel)/.claude/hooks/_lib-portfolio-paths.sh"
+registry=$(portfolio_registry)
+```
+
+Defaults match today's single-fork layout (`./apexyard.projects.yaml`, `./projects`, `./projects/ideas-backlog.md`). Adopters in split-portfolio mode override the `portfolio.{registry, projects_dir, ideas_backlog}` keys in `.claude/project-config.json`. Don't hardcode literal `apexyard.projects.yaml` or `projects/` paths in bash blocks — the helper resolves whichever mode the adopter is in. See `docs/multi-project.md`.
 
 ## Usage
 
@@ -166,3 +178,7 @@ If everything is empty:
 - `/tasks` — same data but flattened into a single ordered TODO list
 - `/status` — current project's git/CI snapshot
 - `/projects` — portfolio-level health snapshot
+
+---
+
+*Part of [ApexYard](https://github.com/me2resh/apexyard) — multi-project SDLC framework for Claude Code · MIT.*

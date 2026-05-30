@@ -2,6 +2,264 @@
 
 All notable changes to ApexYard are documented here.
 
+## [2.2.0] — 2026-05-29
+
+### Local agent routing + split-portfolio v2 hardening + release-cycle plumbing
+
+Minor release bundling three themes:
+
+1. **Local agent routing pipeline** — when `agent-routing.yaml` configures an Ollama/LiteLLM endpoint, the framework now verifies reachability and model availability at SessionStart, exports `ANTHROPIC_BASE_URL` session-wide so routed traffic actually lands on the local endpoint, and warns at SessionStart when routing is configured but INACTIVE (shell-profile snippet not yet sourced).
+2. **Split-portfolio v2 hardening** — partial-config detection (registry pointing at sibling but `workspace_dir` falling back to in-fork default is now a structured SessionStart error, not a silent split), SETUP step 1 routed through the portfolio helper, and 10 prompt-based skills tightened to source the helper inline before any write block so `projects_dir` never falls back to literal paths.
+3. **Release-cycle plumbing** — `/release-sync` now carries forward `CHANGELOG.md` from `main` to `dev` as a separate atomic commit on top of the `-X ours` merge, closing the silent drift gap that previously required occasional manual resync PRs.
+
+Plus a handful of correctness fixes around hook walkers, merge-gate parsing, branch protection on split-portfolio sibling repos, and a regression guard against legacy v1 walker hooks.
+
+### Added
+
+- `feat(#417)` **`/handover` clones the target repo at step 1.5** — when given a Git URL, the skill clones immediately before any reads, so steps 2–6 run against a local checkout instead of the GitHub API. Subsequent reads are 3–15× cheaper per query; failure paths preserved. (PR #432)
+- `feat(#438)` **Ollama / LiteLLM local agent routing** — single source of truth replaces three ad-hoc env-var setups across skills. SessionStart verifies endpoint reachability (a), confirms each configured model is pulled (b), exports `ANTHROPIC_BASE_URL` session-wide (c) so routed traffic actually lands on the local endpoint. (PR #440)
+- `feat(#448)` **`/release-sync` carries forward `CHANGELOG.md` from main to dev** — adds a step 5b that runs after the existing `-X ours` merge: if dev's CHANGELOG drifted from main's, restore main's version via a separate atomic commit on the sync branch. Path-specific (only `CHANGELOG.md`), idempotent via `git diff --quiet upstream/main -- CHANGELOG.md` guard, audit-trail-visible in the sync PR. Closes the silent drift gap that required occasional manual chore PRs to resync. 14/14 tests pass (11 original + 3 new). (PR #451)
+- `feat(#449)` **Rex handbook discovery — additive supplement** — opt-in, fail-soft enhancement to the path-convention handbook matching Rex already performs. When unavailable or unconfigured, Rex's review behaviour is byte-for-byte unchanged. Adopters who don't configure it see zero impact. (PR #450)
+
+### Fixed
+
+- `fix(#373)` **Split-portfolio v2 partial-config detection** — when adopters' `.claude/project-config.json` has the registry / projects / onboarding keys pointing at a sibling repo but leaves `workspace_dir` falling back to the in-fork default, `portfolio_validate()` now emits a structured SessionStart error naming `.portfolio.workspace_dir` and the fix instead of letting clones silently accumulate in the public ops fork. Plus 9 prompt-based skills (`/extract-features`, `/feature-diagram`, `/handover`, `/journey`, `/plan-initiative`, `/process`, `/roadmap`, `/stakeholder-update`, `/tech-vision`, and `/dfd`) tightened to source the portfolio helper before any write block so they cannot drift back to literal `projects/<name>/...` paths. (PR #441)
+- `fix(#414)` **Regression guard against v1 walker hooks** — adds a wrapper-test that asserts no v1 hook surfaces in CI, covering the `gh issue edit` / `gh issue create` blockers that v1 walker hooks reintroduced if a stale install was layered on top of v2. (PR #430)
+- `fix(#415)` **`/split-portfolio` configures branch protection on the private portfolio repo** — after a fresh split, the private sibling repo's `main` branch is now protected (required reviews, no force-push) instead of being left wide open. (PR #431)
+- `fix(#419)` **Bootstrap exemption scope guard** — narrows `require-active-ticket.sh`'s bootstrap exemption to `/handover` only (was previously broad enough to leak through to other bootstrap-listed skills mid-session). (PR #423)
+- `fix(#424)` **Hook walker reads session pin first** — the hook walker now checks the `CLAUDE_CODE_SESSION_ID` session pin before walking the cwd up the tree, so edits made inside `workspace/<project>/` correctly resolve to the project's marker file under the ops fork. Closes a class of "ticket marker not found" failures for managed-project work. (PR #425)
+- `fix(#426)` **Merge hook handles compound marker-write + merge commands** — the merge-gate hook now correctly parses `cmd_a && cmd_b` shapes where the first half writes the CEO marker and the second half is the actual `gh pr merge`. Previously the marker write was treated as the gated command and the merge slipped through unguarded. (PR #427)
+- `fix(#434)` **SETUP step 1 routes `onboarding.yaml` through portfolio helper** — first-run `/setup` was reading the in-fork copy unconditionally; split-portfolio v2 adopters now correctly see the sibling repo's copy on SETUP step 1 without manual workaround. (PR #437)
+- `fix(#442)` **SessionStart warns when local agent routing is INACTIVE** — when `agent-routing.yaml` configures a local endpoint but the current shell has not exported `ANTHROPIC_BASE_URL` (e.g. shell-profile snippet not yet sourced), SessionStart now prints an INACTIVE warning naming the missing env vars and the shell-profile step. (PR #444)
+- `fix(#443)` **Per-block helper-source preamble across 10 skills** — each `bash` write block in `/dfd`, `/extract-features`, `/feature-diagram`, `/handover`, `/journey`, `/plan-initiative`, `/process`, `/roadmap`, `/stakeholder-update`, `/tech-vision` now sources the portfolio helper at the top of the block. Eliminates the cross-block scoping bug where `projects_dir` from an earlier block was undefined in a later one and writes silently fell back to literal `projects/<name>/...`. The Write-targets rule in each SKILL is strengthened with a "REQUIRED per-block preamble" note. (PR #445)
+
+### Changed
+
+- `chore(#446)` **`CHANGELOG.md` on `dev` resynced with `main`** — v1.3.0 → v2.1.0 release-notes entries were missing on dev due to accumulated `-X ours` merge drift over 5 release cycles. One-off content fix; the follow-up #448 closes the underlying mechanism so this won't recur. (PR #447)
+
+### Compatibility
+
+No breaking changes. Adopters running purely on Anthropic's hosted API see no behaviour change. Adopters who use local agent routing get correctness improvements (reachability checks, INACTIVE warnings) instead of silent fallbacks. Split-portfolio v2 adopters whose configs are complete see no behaviour change; those whose configs are partial now get a clear SessionStart error directing them to set `.portfolio.workspace_dir`.
+
+## [2.1.0] — 2026-05-24
+
+### `/release-sync` closes the dev/main divergence loop + one small bug fix
+
+Minor release. Adds a new `/release-sync` skill that automates the main→dev sync after each release-PR merge, so the squash-merge divergence stops compounding from one release to the next. After this release, the next `dev → main` release cycle can run the canonical flow instead of cherry-picking.
+
+### Added
+
+- `feat(#403)` **`/release-sync` skill** — runs as Step 9 of `/release`. Creates a sync branch from `upstream/dev`, merges `upstream/main` with `--no-ff -X ours` (dev wins on conflicts because dev already has the un-squashed equivalents), opens a sync PR. Stops at PR creation; normal Rex + CEO merge gate applies. Framework-only (refuses on managed projects). Defensive cases handled: already-in-sync (no-op exit 0), going-backwards (refuse exit 1). 11 unit tests, AgDR-0052 documents the design trade-offs.
+
+### Fixed
+
+- `fix(#404)` **`/pdf` `convert.sh` fallback path** — removed stale `--pdf-output-folder` and `--dest-name` flags from the md-to-pdf dispatch branch (md-to-pdf removed both flags in a breaking API change). New strategy: stage source into a temp dir under the desired output stem, run `npx md-to-pdf`, move the result to the requested destination. Pandoc preferred-path unchanged; graceful-degrade (exit 3) on no converter installed preserved. New regression test (`test_md_to_pdf_fallback.sh`) pinned against npm `latest` to catch future upstream API drift.
+
+### Compatibility
+
+No breaking changes. Adopters using `/pdf` on systems without pandoc see the fallback path work again. Adopters using `/release` get a new optional Step 9; existing release flow unchanged unless `/release-sync` is invoked.
+
+## [2.0.2] — 2026-05-24
+
+### GA4 + consent banner on all 4 site pages
+
+Patch-only release. v2.0.0 + v2.0.1 left Google Analytics + the cookie consent banner only on `site/index.html`. Any visitor landing directly on `/how-it-works`, `/architecture`, or `/skills` (Twitter/LinkedIn shares, search results, LLM citations from `llms.txt`) was invisible to GA4 — and worse, never saw the consent UI at all, a GDPR gap. This release closes that. No framework changes — site-only.
+
+### Fixed
+
+- `fix(#399)` **GA4 tag on all 4 site pages** — copied gtag.js + Consent Mode v2 default block from `index.html` to `how-it-works.html`, `architecture.html`, `skills.html`. Each block wrapped in `<!-- begin: gtag --> ... <!-- end: gtag -->` markers for greppable future sync (static site, no build step). Every share-driven visit now tracked (subject to consent).
+- `fix(#399)` **Cookie consent banner on all 4 site pages** — same Accept/Decline/Escape flow + `localStorage.ay-consent` persistence as the existing index.html implementation. A user landing on `/how-it-works` first now gets the consent choice; the choice is honoured site-wide on subsequent navigation.
+- `fix(#399)` **Removed dead `anonymize_ip: true` config** — no-op in GA4 (Universal Analytics carryover; GA4 anonymizes all IPs by default).
+- `fix(#399)` **Refreshed `<meta name="llm:token-count">` + `<meta name="llm:doc-length">`** on all 4 pages to reflect new sizes after the GA4 block additions.
+
+### Compatibility
+
+No breaking changes. No framework code touched. Adopters see no changes to hooks, skills, rules, agents, templates, or workflows — only `site/` files modified.
+
+## [2.0.1] — 2026-05-24
+
+### Mobile UX hotfix for the v2.0.0 marketing site
+
+Patch-only release fixing 7 mobile UX regressions surfaced after v2.0.0 shipped. No framework changes — site-only.
+
+### Fixed
+
+- `fix(#393)` **Main-page nav restored on mobile** — `architecture`, `skills`, and `how it works` links were hidden by the `<700px` collapse rule on all 4 site pages. Added `class="always"` so they stay visible. Mobile readers can move between sections again.
+- `fix(#393)` **Eyebrow row wraps cleanly** — the "Copy as Markdown for AI" button no longer crowds the pill+subtitle row at narrow widths. Drops to its own line below the eyebrow on mobile.
+- `fix(#393)` **Duplicated lead text hidden from sighted users on `/how-it-works`** — the `#ai-lead` block (added in v2.0.0 to satisfy `/geo-audit` G12) is now visually-hidden via clip+position trick. AI crawlers and screen readers still consume it; sighted users no longer see the same prose twice.
+- `fix(#393)` **Homepage hero polish** — "Built by me2resh" moved from between tagline and subhead to below the CTAs; version line dimmed further (14px→13px, opacity 0.7→0.55); hero inline link shortened and `white-space:nowrap` so it doesn't wrap mid-phrase.
+- `fix(#393)` **Subtitles trimmed on `/architecture` and `/skills`** so they don't wrap awkwardly on mobile.
+
+### Compatibility
+
+No breaking changes. No framework code touched. Adopters see no changes to hooks, skills, rules, agents, templates, or workflows — only `site/` files were modified.
+
+## [2.0.0] — 2026-05-24
+
+### Six new skills, agent runtime overhaul, marketing site repositioned
+
+v2.0.0 adds six slash commands (planning, audit, PDF, handbook-feedback), ships per-agent model routing via `agent-routing.yaml`, introduces class-aware role activation (spawn vs in-thread), and renames the security-reviewer agent (Hatim → Hakim). The marketing site is repositioned for the founder audience.
+
+**6 new skills (54 total) · 5 adopter-friction fixes · 1 breaking change.**
+
+### Highlights
+
+- **`/plan-initiative`** — interview-driven decomposition into milestones + tasks, dependency-aware sequencing, optional bulk-file each milestone as a Feature ticket with cross-refs
+- **`/mutation-test`** — mutation-testing sensor (Stryker / MutPy / go-mutesting / mutant); milestone cadence, graceful degrade if no language tool installed
+- **`/geo-audit`** — LLM- and agent-discoverability audit; 17 checks across discovery, capability-signaling, content-format, token economics (sibling to `/seo-audit`)
+- **`/codify-rule`** — turn a code-review comment that caught a Rex-miss into a draft handbook entry, auto-routed by domain bucket
+- **`/feature-diagram`** — per-feature Mermaid flowchart of routes / models / jobs / screens (consumes `/extract-features` inventory)
+- **`/pdf`** — export any framework-generated doc (markdown / HTML / BPMN) to PDF with destination prompt
+- **Agent routing layer** (`agent-routing.yaml`) — per-agent model / endpoint / env / timeout overrides without forking the framework agent files
+- **Class-aware role activation** — role triggers now distinguish isolated-work (spawn sub-agent) from in-flow (adopt persona in-thread) per the role's `Class` field
+
+### Added
+
+- `feat(#377)` `/plan-initiative` — initiative → milestones → tasks with DAG topo-sort + two-pass filing
+- `feat(#299)` `/mutation-test` — language-dispatched mutation testing, milestone cadence, exit-3 graceful degrade
+- `feat(#311)` `/geo-audit` — LLM/agent discoverability audit (renamed from `/generative-engine-audit` in #334)
+- `feat(#296)` `/codify-rule` — review comment → handbook entry, Y/N gated, source-PR footer
+- `feat(#288)` `/feature-diagram` — per-feature Mermaid flowchart
+- `feat(#284)` `/pdf` — destination-prompted PDF export (pandoc / md-to-pdf / wkhtmltopdf / bpmn-to-image dispatch)
+- `feat(#351)` `agent-routing.yaml` — per-agent model / endpoint / env / timeout overrides + SessionStart sync hook + drift guards
+- `feat(#347)` Class-aware role-trigger banner — HYBRID spawn-vs-in-thread per role's `Class` field
+- `feat(#298)` `/handover` scores harnessability across 5 codebase dimensions and offers to file Next Steps as tracker tickets
+- `feat(#293)` Rex domain-aware code review — `handbooks/domain/` Stage 1
+- `feat(#297)` Harness templates by topology — TS NextJS / Python FastAPI / Go data pipeline scaffolds
+- `feat(#321)` Audit-pack + safety-hooks marketplace plugins
+- `feat(#386)` Marketing site rewritten for outcomes-led positioning — new `/how-it-works` page, attribution layer across 156 framework markdown files
+
+### Breaking
+
+- **Security-reviewer agent renamed `Hatim → Hakim`** (#347, PR #360) — consolidates the prior Hatim persona into the canonical Hakim security-review agent. Stock-agent adopters have nothing to do. Adopters with custom prompts / hooks that explicitly referenced `Hatim` must grep and update.
+
+### Fixed
+
+- `fix(#382)` `gh api repos/...` GETs no longer blocked by the ticket-create gate (was over-broad prefix match)
+- `fix(#381)` Code-reviewer agent's approval marker now pin-resolves to the ops fork via SessionStart, not the throwaway clone
+- `fix(#370)` Hook wrappers silent no-op when launched outside an apexyard fork
+- `perf(#372)` `docs/multi-project.md` (70k chars) no longer auto-imported into every session — ~18k tokens reclaimed
+- `fix(#310)` Config resolves from ops-fork root, not the workspace clone
+- `fix(#317)` `/split-portfolio` produces v2 layout with copy-onboarding semantics
+
+### Changed
+
+- `feat(#280)` `jq` is now a hard dependency — `/setup` refuses to proceed without it (was advisory)
+- `feat(#283)` Tracker-aware hooks via `_lib-tracker.sh` dispatcher (`gh` / `linear` / `jira` / `asana` / `custom` / `none`)
+- `feat(#282)` `/update` walks intermediate-release migration chain — safe to skip versions and re-sync
+- `feat(#312)` PR summary narrative-quality rule + Rex advisory check — label-only bullets flagged
+- `feat(#295)` Self-correction guidance standardised across 5 blocking hooks
+
+### Notable behaviour changes
+
+1. **Agent renamed: `Hatim → Hakim`** — see Breaking above.
+2. **`jq` required for `/setup`** — first-run refuses without `jq` on PATH (was silent default-fallback). See AgDR-0038.
+3. **`agent-routing.yaml` SessionStart sync** — overrides applied on every session start. Edit the file; no manual reload needed.
+4. **Class-aware role activation** — custom roles should declare `**Class**: isolated-work-class` or `**Class**: in-flow-class` per AgDR-0050.
+5. **`docs/multi-project.md` no longer auto-loaded** — setup-relevant content still on demand via `Read`.
+
+---
+
+## [1.3.0] — 2026-05-18
+
+### Architecture-doc family + audit persistence + split-portfolio v2 + multi-tracker gate
+
+v1.3.0 added the **architecture-doc family** — read-the-code-and-produce-an-artefact skills (`/c4`, `/dfd`, `/process`, `/tech-vision`, `/journey`, `/extract-features`, `/agdr`, plus `/threat-model --format=dragon`), canonical audit-artefact persistence (paired JSON + MD per run, dated subdirs), split-portfolio v2 (workspace + onboarding moved to private sibling repo), and skill-gated ticket-create across multiple trackers.
+
+Full release notes: [PR #279](https://github.com/me2resh/apexyard/pull/279). Highlights:
+
+- 9 new skills, 4 new hooks (28 total at the time), 16 new AgDRs (0014 → 0030, excluding 0029 parked)
+- Audit-artefact persistence (#218, AgDR-0019) — `projects/<name>/audits/<dim>/<ts>.md` + `runs/<ts>.json`
+- Split-portfolio v2 (#242, AgDR-0021) — `onboarding.yaml` + `workspace/` move to private sibling repo
+- Custom templates layer (#244, AgDR-0023) and private custom skills + handbooks (#243, AgDR-0022)
+- Skill-gated ticket-create across `gh` / `linear` / `jira` / `asana` (#268, AgDR-0030)
+- Mermaid lint per emitting skill (`/c4`, `/dfd`, `/tech-vision`) (#266)
+
+---
+
+## [1.2.0] — 2026-05-04
+
+### Mechanical-enforcement hardening + portfolio polish + landing-site refresh
+
+v1.2.0 doubles down on apexyard's "rule-as-code, not advisory prose" thesis. Nine new hooks plus two upgrades wire the SDLC's safety claims tighter to the runtime; four new skills (`/debug`, `/validate-idea`, `/tickets-batch`, `/fan-out`) extend the operator surface; portfolio mode ships a first-class config block plus a destructive-migration helper; and the landing site picks up a multi-tab terminal demo, a full skills reference page, and a permanent changelog link.
+
+Two adopter-visible behaviour changes worth reading before you sync — the `/approve-merge` flow now auto-merges in the same turn (with a structured marker that's harder to forge), and `Bash` file writes (`echo > file`, `tee`, `python -c '...write_text...'`, etc.) are now gated by the same ticket-first hook that already covered `Edit` / `Write` / `MultiEdit`. See "Notable behaviour changes" below.
+
+### Highlights
+
+- **Bootstrap-skill exemption + Bash-write coverage** close the ticket-first gate's two known failure modes (#150 + #151, AgDR-0011)
+- **`/approve-merge` hardened + streamlined** — structured CEO marker prevents `echo SHA > file` bypass; default flow auto-merges in the same turn (#132 + #48, AgDR-0012)
+- **Portfolio mode polish** — `portfolio:` config block, `/split-portfolio` migration helper, self-healing path resolution (#143 + #145, AgDR-0010)
+- **Four new skills** — `/debug` (structured hypothesis-driven debugging), `/validate-idea` (pre-spec gate), `/tickets-batch` (bulk-file flow), `/fan-out` (parallel agents)
+- **Release-cut branch model adopted** — framework now uses `dev` for daily PRs, `main` for release tags only (#116, AgDR-0007)
+- **Landing site refresh** — multi-tab terminal demo (`one ticket / /handover / /setup / /fan-out`), full 39-skill reference page at `/skills.html`, persistent `changelog →` link in the nav
+
+### Added
+
+- `feat(#108)` `/tickets-batch` — bulk-file 5–20 structured tickets in one flow with shared-context micro-interview (#127)
+- `feat(#117)` `/fan-out` — spawn N parallel `Agent` calls in one assistant message, optional worktree isolation, foreground / background mode (#128)
+- `feat(#130)` `/validate-idea` — lightweight 5-question pre-spec gate (#131)
+- `feat(#141)` `/debug` — structured hypothesis-driven debugging that forces architecture-first reading and evidence-before-fix (#142)
+- `feat(#145)` Portfolio config block (`portfolio.{registry,projects_dir,ideas_backlog}`) + self-healing SessionStart banner + `/split-portfolio` migration helper (#147, AgDR-0010)
+- `feat(#150)` Bootstrap-skill exemption — `/setup`, `/handover`, `/update`, `/split-portfolio` write `.claude/session/active-bootstrap` markers; `require-active-ticket.sh` exempts them. Plus Bash-write coverage in `require-active-ticket.sh` and `require-migration-ticket.sh` (#152, AgDR-0011)
+- `feat(#132)` `/approve-merge` writes a structured CEO marker (`sha=`, `approved_by=user`, `skill_version=2`) AND runs `gh pr merge --squash --delete-branch` in the same turn by default; `--no-merge` opt-out preserves the deferred case; bare-SHA legacy markers rejected by the merge gate (#158, AgDR-0012)
+- `feat(#160)` Multi-tab terminal demo on the landing site — four flows (`one ticket`, `/handover`, `/setup`, `/fan-out`) with auto-advance + click-to-jump (#162)
+- `feat(#165)` Skills reference page at `site/skills.html` covering all 39 skills + permanent `changelog →` link in the homepage nav (#167)
+
+### Fixed
+
+- `fix(#106)` CHANGELOG fallback in upstream-drift hook for squash-merged forks (#129)
+
+### Changed
+
+- `chore(#107)` `validate-issue-structure.sh` PreToolUse hook — issue-body schema verified at create time (#122)
+- `chore(#109)` Project-configurable ticket / branch / commit / PR schema in `.claude/project-config.{defaults,}.json` (#118)
+- `chore(#110)` `block-private-refs-in-public-repos.sh` — leak protection on outgoing PR / issue / comment bodies (#119)
+- `chore(#111)` `pre-push-gate` upgraded from advisory reminder to blocking check-runner (#121)
+- `chore(#112)` `require-agdr-for-arch-pr.sh` — flag arch-class PRs that don't link an AgDR (#123)
+- `chore(#113)` `## Testing` section now required in PR body, project-configurable (#124)
+- `chore(#114)` Single `Closes #N` keyword per PR body enforced (#125)
+- `chore(#115)` `warn-stale-review-markers.sh` PostToolUse hook — surfaces stale review markers after pushes (#120)
+- `chore(#116)` Release-cut branch model — `dev` for daily PRs, `main` for release tags only. Framework-only; managed projects stay trunk-based (#126, AgDR-0007)
+- `chore(#153)` Extended Bash-write matcher beyond first-version coverage — additional patterns for archive / network / interpreter shapes (#155)
+- `chore(#163)` Default the split-portfolio sibling repo name to `<fork>-portfolio` (e.g. `your-org/apexyard-portfolio`) instead of generic `your-org/ops` (#164)
+- `chore(#77)` Hook + skill counts in `CHANGELOG.md` and `CLAUDE.md` corrected to current reality (24 hooks, 39 skills) (#161)
+- `chore(#168)` `validate-branch-name.sh` now recognises the `release/vN.N.N(-rcN)?` pattern as a valid branch name; `release` added to `pr.title_type_whitelist` so a PR title `release(#160): v1.2.0` passes the validator (#169)
+- `chore(#170)` `validate-pr-create.sh`'s independent branch-id check now also exempts `release/vN.N.N` (completes the #168 fix) (#171)
+
+### Tests
+
+- `test(#154)` Mock `gh` in test sandboxes — removes live-tracker dependency from `test_single_closes_per_pr.sh` and `test_validate_pr_required_sections.sh` (#156)
+
+### Docs
+
+- `docs(#143)` Document split-portfolio mode (public framework + private sibling portfolio) + add the `/setup` privacy gate (#144)
+- `docs(#148)` Correct privacy-gate wording — adopter action, not framework auto-publish (#149)
+
+### Notable behaviour changes (read before upgrade)
+
+1. **`/approve-merge` auto-merges by default.** The skill now writes the CEO marker AND runs `gh pr merge --squash --delete-branch` in the same turn. Use `/approve-merge <pr> --no-merge` to preserve the old "stop after marker" flow. AgDR-0012 has the rationale.
+2. **Legacy bare-SHA CEO markers are rejected.** Any in-flight `<pr>-ceo.approved` written by the pre-#48 skill must be re-issued via `/approve-merge` (one re-run per stale marker). The new format is structured key/value (`sha=`, `approved_by=user`, `skill_version=2`).
+3. **Bash file writes are gated.** `echo > file`, `tee`, `sed -i`, `python -c '...write_text...'`, `node -e '...writeFileSync...'`, `ruby -e '...File.write...'` now hit `require-active-ticket.sh` / `require-migration-ticket.sh` when no ticket is active. Bootstrap skills get an exemption via the active-bootstrap marker.
+4. **PR body must include `## Testing` section.** PR creation is blocked otherwise. Override via `.claude/project-config.json` → `pr.required_sections` if your team uses different conventions.
+5. **Single `Closes #N` per PR body / commit message.** Multi-Closes is blocked. Use `Refs #N` for cross-references; release PRs use the `<!-- multi-close: approved -->` skip marker.
+6. **Release-cut branch model.** The framework's `main` now only receives release PRs from `dev`. Adopter forks stay trunk-based on `main`.
+
+### Stats
+
+- **24 hooks** wired in `.claude/settings.json` (up from 18 in v1.1.0)
+- **39 skills** available as slash commands (up from 35 in v1.1.0)
+- **10 modular rule files** in `.claude/rules/`
+- **13 AgDRs total** (AgDR-0006 through AgDR-0013 — eight new AgDRs added in this cycle)
+- **Test coverage**: 196+ cases across 12 hook test files
+
+### Migration notes
+
+- **Stale CEO markers** — re-run `/approve-merge` on any in-flight PR with a pre-#48 marker. One re-run each.
+- **Custom `/approve-merge` invocation** — if you customised the skill to skip the merge, pass `--no-merge` to preserve that behaviour.
+- **PR body templates** — make sure your local templates include `## Testing` and `## Glossary` sections (the two `pr.required_sections` enforced by `validate-pr-create.sh`; `## Summary` is conventional but not validator-enforced). See [`pr-quality.md`](.claude/rules/pr-quality.md).
+- **Bash bypass paths** — any tooling that relied on `echo > file` to circumvent the ticket-first gate now needs a real active ticket via `/start-ticket`. Bootstrap skills (`/setup`, `/handover`, `/update`, `/split-portfolio`) are exempt automatically.
+
 ## [1.1.0] — 2026-04-19
 
 ### Tag-based upstream drift detection
@@ -109,7 +367,7 @@ Migrations are high-blast-radius work that sit awkwardly inside the standard bui
 ### Stats
 
 - **17 commits** on `main` since v0.2.0 (9 features, 8 fixes), all PR-merged.
-- **17 hooks** wired in `.claude/settings.json` (up from 15 in v0.2).
+- **18 hooks** wired in `.claude/settings.json` (up from 15 in v0.2).
 - **32 skills** available as slash commands (up from 27 in v0.2).
 - **9 modular rule files** in `.claude/rules/` (unchanged).
 

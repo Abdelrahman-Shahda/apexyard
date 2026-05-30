@@ -1,12 +1,24 @@
 ---
 name: tasks
-description: Generate a flat actionable task list with direct URLs for everything needing your action — PRs to review, issues to triage, comments to respond to, failing CI. Multi-project aware.
+description: Flat actionable task list across the portfolio with direct URLs — PRs to review, issues to triage, comments, failing CI.
 allowed-tools: Bash, Read, Grep, Glob
 ---
 
 # /tasks — Actionable Task List
 
 A single ordered list of "things to click on right now". Where `/inbox` groups items by category, `/tasks` flattens everything into a prioritised TODO with one URL per line. Optimised for "I have 30 minutes, what should I do?".
+
+## Path resolution
+
+Read the registry path via `portfolio_registry`, the per-project docs dir via `portfolio_projects_dir`, and the ideas backlog via `portfolio_ideas_backlog` — all from `.claude/hooks/_lib-portfolio-paths.sh`. Source the helper at the top of any bash block that touches those paths:
+
+```bash
+source "$(git rev-parse --show-toplevel)/.claude/hooks/_lib-read-config.sh"
+source "$(git rev-parse --show-toplevel)/.claude/hooks/_lib-portfolio-paths.sh"
+registry=$(portfolio_registry)
+```
+
+Defaults match today's single-fork layout (`./apexyard.projects.yaml`, `./projects`, `./projects/ideas-backlog.md`). Adopters in split-portfolio mode override the `portfolio.{registry, projects_dir, ideas_backlog}` keys in `.claude/project-config.json`. Don't hardcode literal `apexyard.projects.yaml` or `projects/` paths in bash blocks — the helper resolves whichever mode the adopter is in. See `docs/multi-project.md`.
 
 ## Usage
 
@@ -153,3 +165,7 @@ JSON (`--json`):
 - `/inbox` — same data, grouped by category instead of flattened
 - `/status` — current project state
 - `/projects` — portfolio table
+
+---
+
+*Part of [ApexYard](https://github.com/me2resh/apexyard) — multi-project SDLC framework for Claude Code · MIT.*

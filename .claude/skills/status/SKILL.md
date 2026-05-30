@@ -1,6 +1,6 @@
 ---
 name: status
-description: Snapshot of the current project — git state, open PRs with CI, recent merges, in-progress issue. Multi-project aware. Use to orient yourself in a fresh session.
+description: Project snapshot — git state, open PRs + CI, recent merges, in-progress issue. Use `--briefing` for compact form.
 allowed-tools: Bash, Read, Grep, Glob
 ---
 
@@ -8,13 +8,29 @@ allowed-tools: Bash, Read, Grep, Glob
 
 A focused "where am I" view. Where `/inbox` shows what's waiting on you and `/projects` shows portfolio health, `/status` shows the **current state of work**: branch, dirty files, recent commits, open PRs, and the in-progress issue.
 
+## Path resolution
+
+Read the registry path via `portfolio_registry`, the per-project docs dir via `portfolio_projects_dir`, and the ideas backlog via `portfolio_ideas_backlog` — all from `.claude/hooks/_lib-portfolio-paths.sh`. Source the helper at the top of any bash block that touches those paths:
+
+```bash
+source "$(git rev-parse --show-toplevel)/.claude/hooks/_lib-read-config.sh"
+source "$(git rev-parse --show-toplevel)/.claude/hooks/_lib-portfolio-paths.sh"
+registry=$(portfolio_registry)
+```
+
+Defaults match today's single-fork layout (`./apexyard.projects.yaml`, `./projects`, `./projects/ideas-backlog.md`). Adopters in split-portfolio mode override the `portfolio.{registry, projects_dir, ideas_backlog}` keys in `.claude/project-config.json`. Don't hardcode literal `apexyard.projects.yaml` or `projects/` paths in bash blocks — the helper resolves whichever mode the adopter is in. See `docs/multi-project.md`.
+
 ## Usage
 
 ```
-/status
-/status --project example-app
-/status --verbose
+/status                       # full report (default)
+/status --project example-app # full report scoped to one project
+/status --verbose             # full report with extras
+/status --briefing            # 4-line "where am I" briefing (slide 6)
+/status -b                    # short form of --briefing
 ```
+
+When `--briefing` (or `-b`) is passed, skip every other section and shell out to `.claude/skills/status/briefing.sh`. The full default `/status` output is unchanged for invocations without the flag.
 
 ## Scope
 
@@ -188,6 +204,56 @@ Warnings:
   ⚠ 1 untracked .env.local file (don't commit it)
 ```
 
+## Briefing mode (`--briefing` / `-b`)
+
+A compact 4-line "where am I" snapshot — workspace, ticket, branch, role. Designed to answer the orientation question in 2 seconds at the top of a session, instead of running 3 skills (`/projects`, `/inbox`, `/status`). This is the same output produced by `bin/apexyard status` (the CLI shim — see below), so the on-screen view in Claude Code and the shell view stay identical.
+
+Output shape (me2resh/apexyard#182):
+
+```
+Active workspace:  example-app
+Active ticket:     #42 — Add CSV export
+Branch:            feature/GH-42-csv-export
+Role set:          backend
+```
+
+Behaviour:
+
+| Field | Source |
+|-------|--------|
+| Active workspace | cwd: `<ops_root>/workspace/<name>/...` → `<name>`; `<ops_root>` exactly → `(ops)`; anywhere else → `(unknown)` |
+| Active ticket | `<ops_root>/.claude/session/tickets/<workspace>` first (only when workspace is a real name), then `<ops_root>/.claude/session/current-ticket`. Format: `#<number> — <title>`. No marker → `(none)` |
+| Branch | `git branch --show-current`, run inside the inferred workspace dir (or cwd if no workspace). Detached HEAD or no git repo → `(no branch)` |
+| Role set | Active ticket's labels — first match against the canonical list (`backend`, `frontend`, `qa`, `security`, `platform`, `sre`, `data`, `ux`, `ui`, `product`, `tech-lead`, plus the `-engineer` / `-auditor` / `-designer` / `-manager` / `-lead` long forms). No match (or no ticket) → `<none — inferred per task>` |
+
+Implementation: the logic lives in `.claude/skills/status/briefing.sh` so it's testable in isolation and runnable from a plain shell (no Claude Code dependency). Smoke tests at `.claude/hooks/tests/test_status_briefing.sh`.
+
+When invoked from inside Claude Code as `/status --briefing`, run the helper:
+
+```bash
+bash .claude/skills/status/briefing.sh
+```
+
+When invoked from a shell as `apexyard status`, the same helper runs via `bin/apexyard` (see § "CLI shim" below).
+
+### Role inference scope
+
+V1 ships **label-based inference only** — (a) on the trigger list in #182. The (b) recent-edits and (c) prompt-history strategies are explicit non-goals for v1; they land in a follow-up ticket if the basic version proves useful.
+
+### CLI shim — `apexyard status`
+
+`bin/apexyard` is a small bash script that exposes briefing mode at the shell:
+
+```bash
+# Install (one-time)
+ln -s "$(pwd)/bin/apexyard" ~/.local/bin/apexyard
+
+# Use from anywhere inside the fork or any workspace/<name>/ clone
+apexyard status
+```
+
+The shim walks up from `$PWD` looking for the apexyard fork root (`onboarding.yaml` + `apexyard.projects.yaml`), then runs the same briefing helper. No PATH-shadowing of the `claude` binary, no recursion into Claude Code — pure `bash` end-to-end.
+
 ## Rules
 
 1. **Read-only** — never modify state from this skill
@@ -203,3 +269,7 @@ Warnings:
 - `/inbox` — what's waiting on you across projects
 - `/tasks` — actionable TODOs with URLs
 - `/projects` — portfolio table view
+
+---
+
+*Part of [ApexYard](https://github.com/me2resh/apexyard) — multi-project SDLC framework for Claude Code · MIT.*
