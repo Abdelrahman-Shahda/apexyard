@@ -102,6 +102,28 @@ projects:
       - monorepo
     ticket_prefix: DFN
 
+  # ---------------------------------------------------------------------------
+  # Moj — MOJ Judiciary Portal backend (Java 21 / Spring Boot 3.5 / Spring
+  # Modulith / jMolecules DDD / SQL Server / Flyway / JWT).
+  # Onboarded 2026-06-08 via /handover. See projects/Moj/handover-assessment.md.
+  # ---------------------------------------------------------------------------
+  - name: Moj
+    repo: apessolutions/moj_judiciary
+    workspace: workspace/Moj
+    docs: projects/Moj
+    status: handover
+    tier: P0
+    roles:
+      - tech-lead
+      - backend-engineer
+      - security-auditor
+      - sre
+      - platform-engineer
+    tags:
+      - government
+      - backend
+    ticket_prefix: MOJ
+
 # -----------------------------------------------------------------------------
 # Defaults
 # -----------------------------------------------------------------------------
