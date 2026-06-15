@@ -52,6 +52,18 @@ version: 1
 #               Override the global ticket prefix per project. Useful when
 #               one project uses GH Issues (`GH`) and another uses Linear
 #               (`ENG`).
+#   claude_md_paths
+#               Override the role-file CLAUDE.md search order for this project.
+#               Map of <role-slug> → relative path. Use when the project's
+#               layout doesn't match the default conventions checked in
+#               roles/engineering/{backend,frontend}-engineer.md § "Project
+#               context" (e.g. `apps/api/`, `services/web/`, monorepo roots).
+#               Example:
+#                 claude_md_paths:
+#                   backend-engineer: workspace/<name>/apps/api/CLAUDE.md
+#                   frontend-engineer: workspace/<name>/apps/web/CLAUDE.md
+#               If omitted, the role's default search order is used. Standard
+#               `backend/` and `frontend/` layouts (e.g. Moj) need no override.
 #
 
 projects:
@@ -119,6 +131,11 @@ projects:
       - security-auditor
       - sre
       - platform-engineer
+      - qa-engineer
+      - product-manager
+      - head-of-product
+      - ui-designer
+      - ux-designer
     tags:
       - government
       - backend

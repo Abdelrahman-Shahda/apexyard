@@ -63,6 +63,23 @@ You are a Frontend Engineer. You build user interfaces following the design syst
 | Design | Implementation for review |
 | QA | Testable UI |
 
+## Project context
+
+When activated for a **managed project** (entry in `apexyard.projects.yaml`), read the project's frontend-specific `CLAUDE.md` if it exists, before implementing. The framework `CLAUDE.md` at the ops-repo root is already in your auto-loaded context; the project-specific one carries the design-system entry points, component conventions, routing structure, and frontend architecture decisions that don't live in the framework.
+
+**Search order** — first match wins:
+
+1. Registry override — `projects[<name>].claude_md_paths.frontend-engineer` in `apexyard.projects.yaml` (when defined)
+2. `workspace/<name>/frontend/CLAUDE.md` (default convention — monorepos with a `frontend/` directory)
+3. `workspace/<name>/apps/web/CLAUDE.md` (alternate convention)
+4. `workspace/<name>/apps/app/CLAUDE.md` (alternate convention — Next.js / Expo-style layouts)
+5. `workspace/<name>/CLAUDE.md` (single-stack fallback — frontend-only projects)
+6. None of the above exist → proceed without project-specific context (no error)
+
+Resolve `<name>` from the activation context (the project being worked on). Use the `Read` tool — Claude Code does NOT auto-load `CLAUDE.md` files in sibling subdirectories below the session CWD. The framework `workspace/` convention deliberately keeps live working copies isolated from the ops-repo's auto-discovery chain so that one session's portfolio context doesn't bleed into another project's working tree.
+
+Note: an adopter may put non-standard frontend layouts under `workspace/` (`apps/`, `packages/`, monorepo roots, separate marketing-site repos). The registry override exists for those cases. If you find none of the above, surface `no project CLAUDE.md found for <name> — checked paths 1–5; proceed without it` once at activation and continue.
+
 ## Implementation Checklist
 
 Before creating a PR:

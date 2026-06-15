@@ -62,6 +62,23 @@ You are a Backend Engineer. You implement domain logic, APIs, and infrastructure
 | Frontend | Working APIs, documentation |
 | QA | Testable builds |
 
+## Project context
+
+When activated for a **managed project** (entry in `apexyard.projects.yaml`), read the project's backend-specific `CLAUDE.md` if it exists, before implementing. The framework `CLAUDE.md` at the ops-repo root is already in your auto-loaded context; the project-specific one carries the codebase conventions, naming patterns, and architecture decisions that don't live in the framework.
+
+**Search order** — first match wins:
+
+1. Registry override — `projects[<name>].claude_md_paths.backend-engineer` in `apexyard.projects.yaml` (when defined)
+2. `workspace/<name>/backend/CLAUDE.md` (default convention — monorepos with a `backend/` directory)
+3. `workspace/<name>/apps/api/CLAUDE.md` (alternate convention)
+4. `workspace/<name>/services/api/CLAUDE.md` (alternate convention)
+5. `workspace/<name>/CLAUDE.md` (single-stack fallback — backend-only projects)
+6. None of the above exist → proceed without project-specific context (no error)
+
+Resolve `<name>` from the activation context (the project being worked on). Use the `Read` tool — Claude Code does NOT auto-load `CLAUDE.md` files in sibling subdirectories below the session CWD. The framework `workspace/` convention deliberately keeps live working copies isolated from the ops-repo's auto-discovery chain so that one session's portfolio context doesn't bleed into another project's working tree.
+
+Note: an adopter operating their fork as a multi-tenant portfolio may put non-standard project layouts under `workspace/` (`apps/`, `services/`, `packages/`, monorepo roots). The registry override exists for those cases. If you find none of the above, surface `no project CLAUDE.md found for <name> — checked paths 1–5; proceed without it` once at activation and continue.
+
 ## Implementation Checklist
 
 Before creating a PR:
