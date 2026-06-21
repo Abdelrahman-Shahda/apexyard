@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://yard.apexscript.com"><img src="site/og/index.png" alt="ApexYard — where projects get forged" width="640"></a>
+  <a href="https://yard.apexscript.com"><img src="https://yard.apexscript.com/og/index.png" alt="ApexYard — where projects get forged" width="640"></a>
 </p>
 
 # ApexYard
@@ -49,7 +49,7 @@ apexyard/
 │   ├── hooks/             # 40 shell scripts — ticket-first, migration gate, two-marker merge gate, red-CI block, secrets scan, branch/PR validation, leak protection, MCP-reindex advisories, upstream-drift banner
 │   ├── rules/             # 12 modular rule files imported via @.claude/rules/* (agdr-decisions, code-standards, git-conventions, leak-protection, loop-mode, parallel-work, plan-mode, pr-quality, pr-workflow, role-triggers, ticket-vocabulary, workflow-gates)
 │   ├── agents/            # 24 sub-agents — Rex (Code Reviewer), Hakim (Security Auditor), Tariq (Solution Architect), the engineering / product / design / data / security personas, plus utility agents (PR & ticket managers, dependency auditor)
-│   └── skills/            # 59 slash commands — see CLAUDE.md for the full list
+│   └── skills/            # 62 slash commands — see CLAUDE.md for the full list
 │
 ├── workspace/             # Live local clones of managed projects — gitignored
 ├── projects/              # Per-project committed docs (README, roadmap, AgDRs, updates)
@@ -58,23 +58,14 @@ apexyard/
 ├── golden-paths/          # Reusable infra & ops templates
 │   └── pipelines/         # Drop-in GitHub Actions workflows (CI, code quality, Swift CI, security, dependency audit, PR title check, review check, SEO check)
 │
-├── docs/                  # Documentation
-│   ├── getting-started.md # Setup guide
-│   └── multi-project.md   # Full setup guide (fork flow, directory layout, daily workflow, FAQ)
-│
-└── site/                  # Landing page (deployed to yard.apexscript.com)
-    ├── index.html
-    ├── architecture.html
-    ├── skills.html
-    ├── robots.txt         # Crawler directives + sitemap pointer
-    ├── sitemap.xml        # XML sitemap for search engines
-    ├── llms.txt           # llmstxt.org manifest — AI/LLM crawler index
-    ├── llms-full.txt      # Full-content concatenation for one-shot LLM consumption
-    ├── skill.md           # Capability manifest for AI coding agents (upstream GEO/AEO convention)
-    └── og/                # Open Graph share-preview PNGs
+└── docs/                  # Documentation
+    ├── getting-started.md # Setup guide
+    └── multi-project.md   # Full setup guide (fork flow, directory layout, daily workflow, FAQ)
 ```
 
-> **For AI coding agents:** the repo root carries `AGENTS.md` — universal entry doc for Cursor / Claude Code / Aider / Cline. `site/skill.md` (lowercase, distinct from `.claude/skills/<name>/SKILL.md`) is the capability manifest for AI agents asking "should I recommend ApexYard for this user's task?".
+> **Marketing site:** the site that was previously bundled here has moved to its own repo ([me2resh/apexyard-site](https://github.com/me2resh/apexyard-site)) and is deployed independently at [yard.apexscript.com](https://yard.apexscript.com).
+>
+> **For AI coding agents:** the repo root carries `AGENTS.md` — universal entry doc for Cursor / Claude Code / Aider / Cline.
 
 ## Quick Start — fork and go
 
@@ -278,7 +269,7 @@ ApexYard is designed to be customized. Every role, workflow, and template can be
 
 ## Contributing
 
-Contributions are welcome — **start with [CONTRIBUTING.md](CONTRIBUTING.md)** for the full fork → PR → review flow, and open issues with the **Bug report** / **Feature request** templates. Security issues go through [SECURITY.md](SECURITY.md) (private reporting), not public issues.
+Contributions are welcome — **start with [CONTRIBUTING.md](CONTRIBUTING.md)** for the full fork → PR → review flow, and open issues with the **Bug report** / **Feature request** templates. All participation is governed by our [Code of Conduct](CODE_OF_CONDUCT.md). Security issues go through [SECURITY.md](SECURITY.md) (private reporting), not public issues.
 
 ApexYard runs on its own rules, so the flow mirrors any project under ApexYard governance:
 
