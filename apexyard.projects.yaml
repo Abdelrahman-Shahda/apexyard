@@ -121,13 +121,18 @@ projects:
   # ---------------------------------------------------------------------------
   - name: Moj
     repo: apessolutions/moj_judiciary
+    spec_source: 'Confluence MOJ space — feature defs are source-of-truth for ACs'
+    spec_url: https://apessolutions.atlassian.net/wiki/spaces/MOJ
     workspace: workspace/Moj
     docs: projects/Moj
     status: handover
     tier: P0
     roles:
+      - head-of-engineering # architecture escalation (SPS/ASR = new external integration)
+      - solution-architect # design-review gate (Tariq) ← from your pull
       - tech-lead
       - backend-engineer
+      - frontend-engineer
       - security-auditor
       - sre
       - platform-engineer
