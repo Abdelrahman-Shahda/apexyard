@@ -18,6 +18,7 @@
 ## Current State
 
 ### Tech stack
+
 - **Language**: Java 21
 - **Runtime / framework**: Spring Boot 3.5.14, **Spring Modulith 1.4.11** (enforced module boundaries)
 - **Architecture**: Hexagonal + DDD vertical slices, **jMolecules** (DDD model types) + jMolecules-ArchUnit
@@ -30,15 +31,18 @@
 - **CI**: none (no `.github/workflows`)
 
 ### Build status
+
 - `mvnw test-compile` (Java 21, Docker-free): **ok** — 336 main + 52 test classes compiled clean
 - `mvnw verify` (full suite, needs Docker): **not attempted**
 - Lint: **n/a** — no linter configured (see Harnessability)
 - Coverage: **n/a** — no coverage tooling configured
 
 ### Test coverage
+
 - **Estimated**: unknown (no JaCoCo / coverage threshold). 33 test files against 314 source files. Strong **architectural** test gates present: `ModularityTests` (Spring Modulith + jMolecules verify), `PermissionCatalogIntegrityTest`, `MessageBundleCompletenessTest`. Domain/application tests use in-memory port fakes (no Spring/Docker); persistence tests use Testcontainers.
 
 ### Repo activity
+
 - Commits in last 90 days: 13 (all of them — repo is 6 days old)
 - Open issues: 0
 - Open PRs: 0
@@ -63,19 +67,23 @@ See AgDR-0042 for the scoring rationale and v1 thresholds.
 ## Quality Risks
 
 ### Security
+
 - **Bootstrap super-admin default password is `admin1234`** (`app.bootstrap.super-admin.password`). Env-overridable (`APP_BOOTSTRAP_SUPER_ADMIN_PASSWORD`) and seeder is `@ConditionalOnProperty`, but a deploy that forgets the override ships a guessable super-admin. **Highest-severity finding.**
 - **JWT signing secret defaults to a placeholder** (`change-me-please-use-a-32-byte-minimum-secret`). Env-overridable (`APP_SECURITY_JWT_SECRET`); a missed override means a publicly-known signing key. Deploy-time gate needed.
 - Positives: no hardcoded secrets in `src/main`; `.env`/`*.env` gitignored; stack traces gated off by default (`app.errors.include-stack=false`); CORS origins env-driven; audit snapshots explicitly exclude secrets; refresh-token reuse detection (`SessionReuseException`).
 
 ### Dependencies
+
 - Spring Boot 3.5.14 and jjwt 0.12.6 are current. No abandoned packages observed in `pom.xml`. No CVE scan performed yet — run `/audit-deps` to confirm.
 
 ### Technical debt
+
 - **No top-level README** — only per-module READMEs (`shared/audit`, `iam/auth`). A newcomer can't learn how to run or deploy the service from the repo root.
 - No enforced test-coverage threshold (JaCoCo absent).
 - No lint/format baseline (Checkstyle/Spotless absent) — style consistency rests on author discipline.
 
 ### Operational
+
 - **No CI pipeline** — every quality gate (ModularityTests, compile, tests) is local-only; nothing blocks a bad push.
 - OTLP trace export disabled by default (`MANAGEMENT_OTLP_TRACING_EXPORT_ENABLED=false`) — no collector wired yet, so traces aren't leaving the app.
 - No application Dockerfile or deployment automation. `compose.yaml` provisions a dev SQL Server only; there is no documented prod deploy path.
@@ -106,6 +114,7 @@ Three follow-up reviews were run by sub-agents against the `development` branch:
 ## Integration Plan
 
 ### Roles that apply
+
 - `tech-lead` (always)
 - `backend-engineer` (Java/Spring domain + application + infrastructure code)
 - `security-auditor` (JWT, Spring Security, password encoding, session/auth surface)
@@ -113,6 +122,7 @@ Three follow-up reviews were run by sub-agents against the `development` branch:
 - `platform-engineer` (CI pipeline + golden-path adoption — imminent, see Next Steps)
 
 ### Workflows that kick in
+
 - [ ] PR workflow (`.claude/rules/pr-workflow.md`) — every change goes through a PR
 - [ ] AgDR for technical decisions
 - [ ] Code Reviewer agent (Rex) on every PR
@@ -121,6 +131,7 @@ Three follow-up reviews were run by sub-agents against the `development` branch:
 - [ ] Migration gate — Flyway migrations under `db/migration/**` will trip `require-migration-ticket.sh`; use `/migration`
 
 ### Hooks to enable
+
 - [ ] `block-git-add-all`
 - [ ] `block-main-push`
 - [ ] `validate-branch-name` (set `ticket_prefix: MOJ` for this project)
@@ -129,6 +140,7 @@ Three follow-up reviews were run by sub-agents against the `development` branch:
 - [ ] `check-secrets`
 
 ### CI templates to copy in
+
 - [ ] `golden-paths/pipelines/ci.yml` (adapt to Maven/Java: `./mvnw verify`)
 - [ ] `golden-paths/pipelines/security.yml`
 - [ ] `golden-paths/pipelines/pr-title-check.yml`

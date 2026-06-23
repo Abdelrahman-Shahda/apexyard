@@ -193,7 +193,7 @@ The audit **does not introduce a new test framework**. It uses what's already th
   - `Cron <job-name>`
   - `Queue <queue>.<job>`
   - `QA <endpoint>` (admin-only diagnostic transitions)
-- **Side Effects** — bullet list, prefixed `• ` inside the cell. Include row writes to `UserSubscriptionPeriod`, `UserSubscriptionPeriodFreeze`, `Transaction`, calls to `PaymentProvider`, audit-log writes.
+- **Side Effects** — bullet list, prefixed `•` inside the cell. Include row writes to `UserSubscriptionPeriod`, `UserSubscriptionPeriodFreeze`, `Transaction`, calls to `PaymentProvider`, audit-log writes.
 - **Idempotent** — `Yes` / `No` / `Yes-with-key:<key>`. If `No`, the matrix MUST note the observed error (e.g. "second call throws ConflictException"). This is a known finding for `CancelUserSubscriptionService.cancel` — it throws `ConflictException` if `status !== ACTIVE`, so cancel is **not** idempotent at the public boundary.
 - **Transactional** — `Yes (@Transactional)` / `Yes (manual)` / `No`. Map to the actual decorator presence.
 - **Covering Test** — `apps/<app>-e2e/src/.../<file>.spec.ts::<describe-name>` OR `MISSING — issue #N` if no test exists yet. Every `MISSING` MUST file an issue before the matrix row is "done".
@@ -250,7 +250,7 @@ The audit must catalogue the actual exceptions thrown at each transition site. K
 | `CancelUserSubscriptionService.cancel` | `NotFoundException` | subscription doesn't exist |
 | `CancelUserSubscriptionService.cancel` | `ConflictException` | `status !== ACTIVE` (cancel is non-idempotent) |
 | `CancelUserSubscriptionService.cancel` | `BadRequestException` | `refundAmount > 0` and subscription has already ended |
-| `RenewSubscriptionProcessor.runForSubscription` | (no throw; returns `{outcome:'skipped'|'failed', reason: …}`) | All non-success paths |
+| `RenewSubscriptionProcessor.runForSubscription` | (no throw; returns `{outcome:'skipped'\|'failed', reason: …}`) | All non-success paths |
 
 ---
 

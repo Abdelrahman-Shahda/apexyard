@@ -100,6 +100,7 @@ DivisionPanelJudge (Entity)
 **Behaviour methods**: `register(...)`, `rehydrate(...)`, `reassignFormation(...)`, `substituteDelegated(...)`, `addAdditionalJudge(...)`, `removeAdditionalJudge(...)`, `setProsecutor(rankId, name)`, `effectivePanel() → Panel` (resolves delegations: delegated row overrides the non-delegated row for the same role), `freshenForDate(LocalDate, Panel defaults) → void` (overwrites collection from defaults when the clerk opens on a new date).
 
 **Invariants** (compact-constructor + behaviour-method enforced):
+
 - Panel shape (`{PRESIDENT}` vs `{PRESIDENT, RIGHT, LEFT}`) matches `Division.type` / `Court.type` rule (delegated to application service — same place Division's panel rule lives)
 - At most one row per (`role`, `isDelegated`) for `role ∈ {PRESIDENT, RIGHT, LEFT}` — i.e. one assigned + at most one delegated substitute per panel slot
 - Delegated substitution: a delegated row exists only if a non-delegated row exists for the same panel role (you can't substitute a slot that isn't assigned)
@@ -165,6 +166,7 @@ SessionAccusedLawyer (Entity owned by SessionAccused)
 **Invariant**: at least `name` is set; `lawyerId` is optional. A session-accused MAY have zero lawyers (no defense assigned at session time).
 
 **Status model**:
+
 ```
 PENDING (قيد العرض) ──► DECIDING (قيد النطق بالقرار) ──► DECIDED (تم النطق بالقرار)
        ↑
@@ -172,6 +174,7 @@ PENDING (قيد العرض) ──► DECIDING (قيد النطق بالقرار
 ```
 
 **The propagation invariant** lives on `Session`:
+
 ```java
 void applyPanelSnapshot(Set<SessionJudge> newJudges, ProsecutionRankId newRankId, ProsecutorName newName) {
     if (this.status != SessionStatus.PENDING) {
@@ -415,9 +418,11 @@ All endpoints follow `backend/CLAUDE.md` § "DTOs, validation, and 422 errors": 
 **Purpose**: resolve the current DivisionPanel for this division. If the persisted row's `currentDate` is stale (≠ requested date), overwrite from `Division.formation` defaults before returning. If no row exists yet, return defaults inline (no DB write). If `currentDate = requested date`, return as-is.
 
 **Query params**:
+
 - `date` (`YYYY-MM-DD`, required) — the day the clerk is preparing for
 
 **Response** `200 OK`:
+
 ```json
 {
   "divisionPanelId": "uuid-or-null-if-not-yet-saved",
@@ -447,6 +452,7 @@ All endpoints follow `backend/CLAUDE.md` § "DTOs, validation, and 422 errors": 
 ```
 
 **Errors**:
+
 - `404` `DIVISION_NOT_FOUND` — division id unknown
 - `403` `DIVISION_OUT_OF_SCOPE` — user lacks visibility on this division (per user-scoping enabler)
 
@@ -459,6 +465,7 @@ All endpoints follow `backend/CLAUDE.md` § "DTOs, validation, and 422 errors": 
 **Resource lifecycle**: endpoint 1 always returns a `divisionPanelId` (real if persisted, null if not). On first save, the client passes a tombstone body shape (`id` null in URL is not idiomatic for PUT — instead, **use `POST /api/v1/divisions/{id}/panel` for first-time create**, then `PUT /api/v1/division-panels/{id}` for subsequent updates). The application service treats `POST` as upsert (since `UNIQUE(division_id)` guarantees at most one row exists).
 
 **Request**:
+
 ```json
 {
   "currentDate": "2026-06-15",
@@ -482,6 +489,7 @@ All endpoints follow `backend/CLAUDE.md` § "DTOs, validation, and 422 errors": 
 ```
 
 **Validation** (Bean Validation + service-layer):
+
 - `currentDate`, `prosecutorRankId`, `prosecutorName` required (`@NotNull` / `@NotBlank`)
 - Exactly one of `singleJudgeId` OR (`presidentJudgeId` + `rightJudgeId` + `leftJudgeId`) per `requiredPanelShape` (enforced in service via `FieldValidationException` — same pattern as `DivisionApplicationService` validates panel shape today)
 - Panel judges must be distinct
@@ -492,6 +500,7 @@ All endpoints follow `backend/CLAUDE.md` § "DTOs, validation, and 422 errors": 
 - Additional judges must NOT overlap (panel ∪ delegated-substitution targets)
 
 **Response** `200 OK`:
+
 ```json
 {
   "divisionPanel": { /* same shape as endpoint 1's response */ },
@@ -505,6 +514,7 @@ All endpoints follow `backend/CLAUDE.md` § "DTOs, validation, and 422 errors": 
 ```
 
 **Errors**:
+
 - `422` field errors (dotted paths like `panel.rightJudgeId`, `additionalJudgeIds.2`, `prosecutorId`)
 - `404` `DIVISION_NOT_FOUND` / `JUDGE_NOT_FOUND` / `PROSECUTION_NOT_FOUND`
 - `409` `DIVISION_PANEL_DATE_PAST` — saving for a date < today (decision: reject, confirm with SME)
@@ -516,6 +526,7 @@ All endpoints follow `backend/CLAUDE.md` § "DTOs, validation, and 422 errors": 
 **Purpose**: find an existing renewal case by the 4-field identity tuple.
 
 **Request**:
+
 ```json
 {
   "number": "...",
@@ -526,6 +537,7 @@ All endpoints follow `backend/CLAUDE.md` § "DTOs, validation, and 422 errors": 
 ```
 
 **Response** `200 OK`:
+
 ```json
 {
   "case": {
@@ -547,6 +559,7 @@ All endpoints follow `backend/CLAUDE.md` § "DTOs, validation, and 422 errors": 
 ```
 
 **Errors**:
+
 - `422` if any of the 4 fields missing/invalid
 
 ---
@@ -556,6 +569,7 @@ All endpoints follow `backend/CLAUDE.md` § "DTOs, validation, and 422 errors": 
 **Purpose**: create a new renewal case with accused + charges. Used when search (#3) returns `found: false`.
 
 **Request**:
+
 ```json
 {
   "number": "...",
@@ -572,6 +586,7 @@ All endpoints follow `backend/CLAUDE.md` § "DTOs, validation, and 422 errors": 
 ```
 
 **Validation**:
+
 - All 4 identity fields required (DECISION 6 locked set; `caseTypeId` references new `casetype` slice)
 - `accused` non-empty; each `accused[i].name` non-blank; each `chargeIds` non-empty
 - Uniqueness on `(number, year, policeStationId, caseTypeId)` — DB unique constraint surfaces as `422` field error
@@ -579,11 +594,13 @@ All endpoints follow `backend/CLAUDE.md` § "DTOs, validation, and 422 errors": 
 - `caseTypeId` validated to exist + active
 
 **Response** `201 Created`:
+
 ```json
 { /* same shape as the case payload in endpoint 3's response */ }
 ```
 
 **Errors**:
+
 - `422` `CASE_IDENTITY_TAKEN` — uniqueness violation, mapped to `errors.number` field path
 - `422` `CHARGE_NOT_FOUND` / `POLICE_STATION_NOT_FOUND` / `CASE_TYPE_NOT_FOUND` — at the offending field path
 - `422` other Bean-Validation failures
@@ -595,6 +612,7 @@ All endpoints follow `backend/CLAUDE.md` § "DTOs, validation, and 422 errors": 
 **Purpose**: append a new session to the roll for (this division, today), snapshot the current panel + prosecutor at this moment.
 
 **Request**:
+
 ```json
 {
   "sessionDate": "2026-06-15",
@@ -613,6 +631,7 @@ All endpoints follow `backend/CLAUDE.md` § "DTOs, validation, and 422 errors": 
 ```
 
 **Validation**:
+
 - `sessionDate` required; must be ≥ today (or matches DivisionPanel.currentDate — confirm with SME)
 - `caseId` required; case must exist + not deleted
 - `hearingReasonId` required; must exist + active in `hearingreason` slice
@@ -620,6 +639,7 @@ All endpoints follow `backend/CLAUDE.md` § "DTOs, validation, and 422 errors": 
 - `accusedLawyers` (optional) — each `accusedId` must exist in `case.accused`. Each `lawyers[i]` MUST have either `lawyerId` OR `name` (not both, not neither). `lawyerId` validated against `lawyers` slice.
 
 **Behaviour**:
+
 - Snapshot frozen from current DivisionPanel state — resolve `effectivePanel = panel ⊕ delegatedSubstitutions`, materialize `SessionJudge` rows (each with `name` + `judicial_rank_id` copied from `judges` or from the delegated entry) + inline prosecutor snapshot (rank_id + name copied from DivisionPanel)
 - Snapshot all case-accused as `SessionAccused` rows (name copied from `case_accused.name`)
 - Attach lawyers per session-accused per the request body (zero or more); when `lawyerId` present, copy name from `lawyers`; when ad-hoc, use `name` as-is
@@ -627,6 +647,7 @@ All endpoints follow `backend/CLAUDE.md` § "DTOs, validation, and 422 errors": 
 - Status set to `PENDING`
 
 **Response** `201 Created`:
+
 ```json
 {
   "id": "uuid",
@@ -662,6 +683,7 @@ All endpoints follow `backend/CLAUDE.md` § "DTOs, validation, and 422 errors": 
 ```
 
 **Errors**:
+
 - `422` `DIVISION_PANEL_INCOMPLETE` — panel or prosecutor not set on division
 - `422` `CASE_NOT_FOUND` / `CASE_SOFT_DELETED`
 - `422` `HEARING_REASON_NOT_FOUND` / `HEARING_REASON_INACTIVE`
@@ -674,6 +696,7 @@ All endpoints follow `backend/CLAUDE.md` § "DTOs, validation, and 422 errors": 
 **Purpose**: render the day's roll for (division, date), optionally filtered by status / searched by free-text case fields.
 
 **Query params**:
+
 - `date` (required, `YYYY-MM-DD`) — the day's roll to render
 - `status` (optional) — `PENDING` / `DECIDING` / `DECIDED`
 - `q` (optional) — free-text search; matches case `number`, accused `name`
@@ -681,6 +704,7 @@ All endpoints follow `backend/CLAUDE.md` § "DTOs, validation, and 422 errors": 
 - Default sort: `rollPosition ASC` (server-controlled)
 
 **Response** `200 OK`:
+
 ```json
 {
   "data": [ { /* session payload like endpoint 5's response */ } ],
@@ -697,19 +721,23 @@ All endpoints follow `backend/CLAUDE.md` § "DTOs, validation, and 422 errors": 
 **Purpose**: change a session's `rollPosition`. Two shapes supported.
 
 **Request shape A** — explicit position (preferred):
+
 ```json
 { "rollPosition": 250 }
 ```
 
 **Request shape B** — relative ("after"):
+
 ```json
 { "afterSessionId": "uuid" }
 ```
+
 Server resolves to `rollPosition = (afterSession.rollPosition + nextSession.rollPosition) / 2`, falling back to `+100` if at the end. Triggers a re-numbering job if the resolved gap < threshold (e.g. 2).
 
 **Response** `200 OK`: same shape as endpoint 5.
 
 **Errors**:
+
 - `422` `SESSION_NOT_FOUND`
 
 ---
@@ -719,6 +747,7 @@ Server resolves to `rollPosition = (afterSession.rollPosition + nextSession.roll
 **Purpose**: edit non-snapshot fields on a PENDING session.
 
 **Request**:
+
 ```json
 {
   "hearingReasonId": "uuid"
@@ -726,11 +755,13 @@ Server resolves to `rollPosition = (afterSession.rollPosition + nextSession.roll
 ```
 
 Notes:
+
 - `caseId` is NOT editable here (replace the session if the case is wrong)
 - Snapshot fields (participants) are FROZEN — not editable from this endpoint
 - `sessionDate` is NOT editable — replace the session if it's on the wrong day
 
 **Validation**:
+
 - Session status must be `PENDING` — otherwise `409` `SESSION_NOT_PENDING` (edit-on-decided is a different workflow)
 
 **Response** `200 OK`: same shape as endpoint 5.
@@ -744,6 +775,7 @@ Notes:
 **Request**: no body.
 
 **Behaviour** (single transaction with row lock on the case):
+
 1. Load session; refuse if not PENDING (`409` `SESSION_NOT_PENDING_DELETE`)
 2. Set `session.deleted_at = now`
 3. Count other live sessions on `session.case_id`
@@ -751,11 +783,13 @@ Notes:
 5. Emit `SessionSoftDeleted` event
 
 **Response** `200 OK`:
+
 ```json
 { "cascadedCaseId": "uuid" | null }
 ```
 
 **Errors**:
+
 - `404` `SESSION_NOT_FOUND`
 - `409` `SESSION_NOT_PENDING_DELETE` — already DECIDING/DECIDED
 
@@ -843,6 +877,7 @@ Note: reference-data slices (`hearingreason`, `casetype`) sequence first because
 | `deleted_at` | `datetime2` | NULL | Soft delete (admin only — normal use overwrites in place) |
 
 **Constraints / indexes**:
+
 - `uq_division_panels_division_id` UNIQUE (`division_id`) WHERE `deleted_at IS NULL` — **one row per division, no historical accumulation**
 - `@SQLRestriction("deleted_at IS NULL")` on the JPA entity
 
@@ -859,6 +894,7 @@ Note: reference-data slices (`hearingreason`, `casetype`) sequence first because
 | `delegated_judicial_rank_id` | `uniqueidentifier` | NULL | FK → `judicial_ranks(id)`. Set when `is_delegated = 1`. NULL otherwise. |
 
 **Constraints**:
+
 - CHECK: `judge_id IS NOT NULL` XOR (`delegated_name IS NOT NULL AND delegated_judicial_rank_id IS NOT NULL`) — exactly one shape per row
 - `uq_division_panel_judges_panel_role_assigned` UNIQUE (`division_panel_id`, `role`) WHERE `role <> 'ADDITIONAL'` AND `is_delegated = 0` — at most one assigned per panel role
 - `uq_division_panel_judges_panel_role_delegated` UNIQUE (`division_panel_id`, `role`) WHERE `role <> 'ADDITIONAL'` AND `is_delegated = 1` — at most one delegated per panel role
@@ -881,6 +917,7 @@ Note: reference-data slices (`hearingreason`, `casetype`) sequence first because
 | `deleted_at` | `datetime2` | NULL | Soft delete (cascade target from session delete) |
 
 **Constraints / indexes**:
+
 - `uq_cases_identity` UNIQUE (`number`, `year`, `police_station_id`, `case_type_id`) WHERE `deleted_at IS NULL` — the locked-identity tuple from DECISION 6
 - `ix_cases_search` composite (`number`, `year`) — for the global 4-field search in DAY-G
 - `ix_cases_police_station_id` — secondary search dimension
@@ -931,6 +968,7 @@ Inline prosecutor snapshot (prosecutor has no id — rank + name only).
 | `deleted_at` | `datetime2` | NULL | Soft delete |
 
 **Constraints / indexes**:
+
 - `ix_sessions_division_date_status` composite (`division_id`, `session_date`, `status`) — **load-bearing for DAY-F propagation** (single index scan to find all PENDING sessions for (division, today))
 - `ix_sessions_case_id` — for the soft-delete cascade count (Decision 7)
 - `ix_sessions_division_date_position` composite (`division_id`, `session_date`, `roll_position`) — day's roll ordering query

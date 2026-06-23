@@ -116,6 +116,7 @@ flowchart TB
 ## Detailed findings
 
 ### T1 — Insecure default super-admin + placeholder JWT secret (CRITICAL) — issue #1
+
 The bootstrap seeder is **enabled by default** (`APP_BOOTSTRAP_SUPER_ADMIN_ENABLED:true`)
 and defaults to `admin` / `admin1234` (`application.properties:47-49`). The JWT signing
 secret defaults to the literal placeholder `change-me-please-use-a-32-byte-minimum-secret`
@@ -130,6 +131,7 @@ and a strong `APP_BOOTSTRAP_SUPER_ADMIN_PASSWORD` to be explicitly set in any no
 profile; force a password change on first super-admin login; disable the seeder after first run.
 
 ### T2 — No rate limiting on authentication (HIGH)
+
 `/auth/login` and `/auth/refresh` are `permitAll()` (`SecurityConfig.java:59`) and there is
 no rate limiter, account lockout, or CAPTCHA anywhere in the codebase (grep for
 bucket4j/resilience4j/RateLimiter returned nothing). Credential brute force, refresh-token
@@ -141,6 +143,7 @@ at the filter level; add exponential backoff / temporary lockout after N failure
 a WAF/gateway limit in front.
 
 ### T3 — Actuator endpoints fully unauthenticated (HIGH)
+
 `actuatorSecurityFilterChain` matches every actuator endpoint and `anyRequest().permitAll()`
 with CSRF off (`SecurityConfig.java:40-43`). Exposed endpoints include `prometheus`, `metrics`,
 `modulith`, `info`, `health` (`application.properties:31`). Unauthenticated callers can read
@@ -152,6 +155,7 @@ and `.anyRequest().authenticated()` (or `hasAuthority(SUPER_ADMIN)`) for the res
 `prometheus` over an internal-only network interface or with a scrape credential.
 
 ### T4 — No transport-security enforcement (HIGH)
+
 There is no `requiresChannel().requiresSecure()`, no HSTS header configuration, and no
 `server.ssl` in `src/main`. Bearer JWTs, refresh tokens, and credentials cross B1/B2 in
 cleartext unless an external load balancer terminates TLS and is correctly configured. A
@@ -161,6 +165,7 @@ when not behind a trusted TLS-terminating proxy), document the TLS-termination r
 and set `server.forward-headers-strategy=framework` only with a trusted proxy (see T5).
 
 ### T5 — Unvalidated `X-Forwarded-For` (HIGH for audit integrity)
+
 Both the login path (`AuthController.java:107-113`) and the audit context
 (`DefaultAuditContextProvider.java:46-56`) take the first `X-Forwarded-For` value verbatim
 with no trusted-proxy allowlist. Any client can spoof its source IP, poisoning the audit
@@ -170,6 +175,7 @@ added later.
 (Spring `ForwardedHeaderFilter` + trusted-proxy CIDR), otherwise use `getRemoteAddr()`.
 
 ### T6 — Weak password policy (MEDIUM)
+
 Minimum password length is 8 with no complexity, no breach-list check, and no maximum length
 (`ChangePasswordRequest.java:14`, `RegisterAdminRequest.java:29`). The default seed password
 `admin1234` (T1) is a trivially guessable 9-char string. For a judiciary admin portal this is
@@ -178,6 +184,7 @@ under-strength.
 cap length to bound BCrypt cost, and forbid known-weak values.
 
 ### T7 — Per-request DB permission resolution, no cache (MEDIUM)
+
 `JwtAuthFilter` resolves effective permissions from storage on every authenticated request
 (`JwtAuthFilter.java:84`). This is a deliberate freshness tradeoff (role changes apply next
 request), but it makes every request a DB round-trip and an amplification target under load.
@@ -186,6 +193,7 @@ invalidation on role change, or accept the cost but ensure connection-pool limit
 limiting bound the blast radius.
 
 ### T8 — Auth events not audited (MEDIUM)
+
 By design, login / logout / refresh / **failed login** are not recorded; only
 `TOKEN_REUSE_DETECTED` and `PASSWORD_CHANGED` are (`AuthApplicationService.java` class doc,
 `:96-103`, `:155-156`). For a justice-sector system this leaves no record of who accessed it
@@ -194,6 +202,7 @@ or of brute-force attempts — a repudiation and incident-response gap.
 source IP and username), even if sampled/aggregated, to a tamper-evident store.
 
 ### T9 — Credentialed CORS with configurable origins (MEDIUM)
+
 `allow-credentials=true` (`application.properties:28`) combined with an env-driven origin list
 (`CorsConfig.java:17`) means a wrong `APP_CORS_ORIGINS` (or a future wildcard) grants
 credentialed cross-origin access. The code correctly uses an explicit origin list (not `*`),
@@ -202,6 +211,7 @@ so this is a config-hygiene risk, not a present flaw.
 plain-http in prod); document that `allow-credentials` forbids wildcard.
 
 ### T10 — Stack-trace exposure togglable per env (MEDIUM)
+
 `app.errors.include-stack` defaults off (`application.properties:62`) but any operator can set
 `APP_ERRORS_INCLUDE_STACK=true` and 500 bodies then carry full traces
 (`GlobalExceptionHandler.java:173-176`). Defaults are safe; the risk is operational misuse in
@@ -210,6 +220,7 @@ a shared env.
 `spring.profiles.active` is prod), or remove from response entirely and rely on server-side logs.
 
 ### T11 — No explicit input-size ceilings (MEDIUM)
+
 Login fields have `@NotBlank` only, no `@Size` max (`LoginRequest.java:8-13`); there is no
 configured max request body size beyond servlet defaults. Large-payload and oversized-field
 DoS are possible.
@@ -217,12 +228,14 @@ DoS are possible.
 `spring.servlet.multipart.max-request-size` / a body-size limit.
 
 ### T12 — Audit table not DB-enforced append-only (LOW)
+
 `audits` is a plain table (`V0_001__create_audits.sql`) with no trigger/permission preventing
 UPDATE/DELETE. Application code only appends, but a compromised DB account could rewrite history.
 **Mitigation**: revoke UPDATE/DELETE on `audits` from the app DB role, or add an
 INSTEAD-OF-UPDATE/DELETE trigger; consider periodic export to write-once storage.
 
 ### T13 — 1-day access-token TTL, no early revocation (LOW)
+
 Access TTL is `P1D` (`application.properties:23`) and access tokens are stateless
 (`JwtService.java`), so a stolen access token is valid for up to 24h regardless of logout.
 Refresh-token rotation + reuse detection (`AuthApplicationService.java:97-104`) is strong, but
@@ -231,12 +244,14 @@ the access window is wide.
 add a token-version/denylist check for forced revocation.
 
 ### T14 — `health.show-details=when_authorized` with no actuator auth (LOW)
+
 Details show `when_authorized`, but the actuator chain authenticates no principal (T3), so the
 setting's protective intent is not actually exercised.
 **Mitigation**: resolved by T3 (authenticate the actuator chain), after which `when_authorized`
 behaves as intended.
 
 ### T15 — Symmetric HS256 signing (LOW)
+
 HS256 uses one shared secret to both sign and verify (`JwtService.java:33,47`). Anyone holding
 the secret can forge tokens; there is no key rotation or asymmetric verification.
 **Mitigation**: ensure the secret is high-entropy and stored in a secrets manager; consider

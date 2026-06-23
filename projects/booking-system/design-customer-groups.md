@@ -44,7 +44,7 @@ The app uses **MUI v5** + **Minimals theme**. All new components reuse, not rede
 | Form modals | `<Dialog fullWidth maxWidth="sm">` + `<DialogTitle>` + `<DialogContent>` + `<DialogActions>` |
 | Form fields | `<Field.Text>`, `<Field.Autocomplete>` from `src/components/hook-form/fields.tsx` |
 | Icons | `<Iconify icon="...">` — always via the `Iconify` wrapper, never raw SVG |
-| Status labels | `<Label color="success|error|warning" variant="soft">` from `src/components/label` |
+| Status labels | `<Label color="success\|error\|warning" variant="soft">` from `src/components/label` |
 | Toasts | `toast.success(...)` / `toast.error(...)` from `src/components/snackbar` |
 | File upload | `<Upload>` with `useDropzone` under the hood — from `src/components/upload` |
 | Scrollable containers | `<Scrollbar>` from `src/components/scrollbar` — wrap any overflow Table |
@@ -126,6 +126,7 @@ CustomerGroupsListView
 | `""` | `""` | 56 | — (row chevron) |
 
 **CustomerGroupTableRow** renders:
+
 - `id`: plain text
 - `name`: `Typography variant="subtitle2"` (bold)
 - `description`: `Typography variant="body2" color="text.secondary" noWrap` — truncate at 40 chars with ellipsis; `Tooltip` with full text on hover
@@ -442,6 +443,7 @@ CustomerGroupMembersTab
 | `""` | `""` | 64 (delete action) |
 
 **CustomerGroupMemberTableRow** renders:
+
 - Name: `Typography variant="subtitle2"` — `"${firstName} ${lastName}"` (fallback `"—"` if both null)
 - Phone: `Typography variant="body2" color="text.secondary"` — formatted E.164 or `"—"`
 - Added: `fDate(addedAt)`
@@ -692,6 +694,7 @@ If the tab is re-opened while a job is in-flight (e.g. user navigated away and b
 | File-level error | `errorMessage` |
 
 **API calls**:
+
 - `GET /customer-groups/import-template` — download (anchor tag, `download` attribute)
 - `POST /customer-groups/:id/import` — multipart, returns `{jobId, status}`
 - `GET /customer-groups/:id/imports/:jobId` — poll, returns `SparkCustomerGroupImportStatusDto`
@@ -910,10 +913,12 @@ customerGroups: zod.array(zod.object({ id: zod.number(), name: zod.string() })).
 ```
 
 **Default values** (added to `getSpaceDefaultValue`):
+
 - `accessMode`: `currentSpace?.accessMode ?? 'public'`
 - `customerGroups`: `currentSpace?.customerGroups ?? []`
 
 **On submit**: `convertFormValuesToUpdateSpaceDto` extended to include:
+
 ```typescript
 accessMode: data.accessMode,
 customerGroupIds: data.customerGroups?.map(g => g.id) ?? [],
