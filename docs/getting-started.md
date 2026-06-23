@@ -136,6 +136,64 @@ Create an AgDR.
 
 ---
 
+## Optional: Terminal push hook (`core.hooksPath`)
+
+The framework ships a `.githooks/pre-push` hook that runs the same check set as the Claude Code `pre-push-gate.sh` hook — markdownlint, shellcheck, and the subpack extraction smoke test — for terminal `git push` commands.
+
+The Claude Code hook (`pre-push-gate.sh`) only fires on pushes made _through Claude Code_. The git hook covers pushes made directly from the terminal.
+
+### One-time opt-in per clone
+
+```bash
+git config core.hooksPath .githooks
+```
+
+Run this once inside your apexyard clone. Git then picks up `.githooks/pre-push` on every `git push` regardless of how you invoke it.
+
+To enable it globally for all clones of apexyard (useful if you work across multiple machines or re-clone often):
+
+```bash
+git config --global core.hooksPath .githooks
+```
+
+Note: `--global` affects every git repo on your machine, not just apexyard. If other repos ship their own hooks under `.git/hooks/`, those will be shadowed. The safest approach is per-clone.
+
+### Missing tools degrade gracefully
+
+Each check guards for its tool: if `shellcheck` or `npx` is missing, the check prints an actionable install message and skips (exit 0). A contributor without a tool is never hard-blocked; the check still runs in CI.
+
+### Emergency bypass
+
+Include `<!-- pre-push: skip -->` in the HEAD commit message (subject or body) to bypass for a genuine one-off emergency. The bypass is printed to stderr so it's visible in the terminal output and grep-able in history. The skip is intentionally narrow — it covers one push per commit, not all future pushes.
+
+```bash
+git commit --amend -m "$(git log -1 --format=%B)
+<!-- pre-push: skip -->"
+```
+
+### Checks in the set
+
+| Check | What it catches | Tool required |
+|-------|----------------|---------------|
+| `markdownlint` | Malformed markdown (broken tables, duplicate headings, etc.) via markdownlint-cli2 | `npx` (Node.js) |
+| `shellcheck` | Shell-script bugs, quoting issues, portability problems in `.claude/hooks/*.sh` | `shellcheck` |
+| ~~`site-counts`~~ | Retired — the marketing site moved to me2resh/apexyard-site (#663) | — |
+| `subpacks` | Marketplace sub-pack extraction smoke test — confirms no framework-private files leaked | none (bash) |
+
+Link-check (lychee) is intentionally excluded — it is slow and network-dependent, making it unsuitable for pre-push latency.
+
+---
+
+## Managing model cost — why the main agent dominates spend
+
+The per-agent model matrix ([AgDR-0050](agdr/AgDR-0050-agent-runtime-overhaul.md)) only applies to *spawned* sub-agents (reviews, QA, analysts). *In-flow* work — implementation, PM, design — is adopted **in-thread** by design, so it runs on your primary tier (usually Opus) and the `sonnet` implementation default never takes effect. That's why operators see the main agent dominating token spend.
+
+Three levers manage it, ordered by effort-to-win ratio: (1) **`opusplan`** — Opus plans, Sonnet executes (biggest win, no framework change); (2) the **thin-orchestrator pattern** — keep the Opus loop as a planner / coordinator and delegate implementation to spawned `sonnet` build agents via `/fan-out` or `Workflow`; (3) populate **`agent-routing.yaml`** to pin or route per-agent tiers.
+
+Full explanation + the opt-in thin-orchestrator mode: [`docs/orchestrator-cost-model.md`](orchestrator-cost-model.md).
+
+---
+
 ## Optional: LSP-aware code navigation
 
 Claude Code v2.0.74+ ships a built-in **LSP (Language Server Protocol) tool** that answers semantic queries — *"where is this defined?"*, *"where is this used?"*, *"what does this symbol resolve to?"* — by talking to a language server (`tsserver`, `pyright`, `gopls`, `rust-analyzer`, etc.) instead of grepping the file tree. It is **off by default** and **opt-in per session**.
@@ -265,6 +323,19 @@ Cargo workspaces with many crates have a slow first index — see the caveat bel
 - **Cross-project portfolio queries still need grep.** LSP indexes one project at a time. Skills that walk the whole portfolio (`/inbox`, `/tasks`, `/stakeholder-update`, anything that aggregates across `apexyard.projects.yaml`) read across many repos and stay on grep + Read regardless of LSP state.
 - **No new failure mode.** Skills that benefit from LSP (`/code-review`, `/threat-model`, `/security-review`) fall back to grep + Read transparently when LSP is absent. There is no "broken without LSP" path — only a faster one with it.
 - **Plugin marketplace links may move.** The plugin ecosystem is young. If a marketplace search turns up multiple options for one language, prefer the one maintained by the language's own community (e.g. official `tsserver` over a third-party wrapper).
+
+## Optional: Fallow static analysis (JS/TS)
+
+For JavaScript / TypeScript projects, the Code Reviewer agent (Rex) can run a [Fallow](https://docs.fallow.tools) static-analysis pass as part of every code review — surfacing dead code, unused exports/dependencies, duplication, circular dependencies, and complexity hotspots in the **changed code**, plus a dry-run preview of the fixes it would apply. See `.claude/agents/code-reviewer.md` § 9 and [AgDR-0069](agdr/AgDR-0069-fallow-in-code-review.md).
+
+**This is opt-in and fail-soft.** Rex only runs it when the diff touches `**/*.{js,jsx,mjs,cjs,ts,tsx}` AND the `fallow` CLI is on `PATH`. If the CLI is absent, the step is skipped silently — there is no "broken without fallow" path, only a richer review with it. Findings are **advisory** (`nit:` / `suggestion:`); they never flip a verdict on their own, and the review only previews fixes (`fallow fix --dry-run`) — it never mutates your tree.
+
+To enable it on a JS/TS project:
+
+1. **Install the `fallow` CLI** — `cargo install fallow-cli`, or run it ad-hoc with `npx fallow`.
+2. **(Optional) toggle it in `onboarding.yaml`** — set `quality.fallow_review: false` to keep the CLI installed but disable the review pass. Absent or `true` → enabled when the CLI is present.
+
+Non-JS/TS stacks need do nothing — the language gate means the pass never fires on a non-JS/TS diff regardless of the flag, and an absent `fallow` CLI skips it anyway. (Leaving `quality.fallow_review` unset is equivalent to `true`; it only matters on JS/TS projects that have the CLI installed and want to turn the pass *off*.)
 
 ## Optional: Local agent routing
 

@@ -24,6 +24,7 @@ This PRD scopes an **audit + documentation initiative** (not a product feature) 
 **Primary**: DFN engineers (backend + data) who modify subscription behaviour — currently 6 active contributors, dominated by Abdelrahman Shahda, mofarag-apes, and Mahmoud3mmarr. They benefit from a written contract that prevents the next "did this commit break renewals?" moment.
 
 **Secondary**:
+
 - **DFN QA / Product** — gets an acceptance-matrix to run regression checks against before each release.
 - **DFN customer-support / ops** — gets a state diagram to reason about "why is this user's subscription stuck?" tickets.
 - **Future Tech Lead onboarding** (per the handover assessment) — the audit doc becomes the entry point for understanding subscriptions.

@@ -320,7 +320,7 @@ All endpoints are tenant-admin scoped (`@TenantAdminAuth([...])`) unless noted.
 
 | Method | Path | Purpose | Permission |
 |---|---|---|---|
-| PATCH | `/spaces/:id/access` | `{ accessMode: 'public' | 'restricted', customerGroupIds: number[] }` | `SpacePermission.edit` |
+| PATCH | `/spaces/:id/access` | `{ accessMode: 'public' \| 'restricted', customerGroupIds: number[] }` | `SpacePermission.edit` |
 
 ### Request / response examples
 
@@ -553,8 +553,8 @@ When `:userId IS NULL` (guest), the OR-arm collapses to false and only public sp
 | `POST /v1/locations/slots/pricing` | Aggregate pricing for `spaceIds[]` | **Reject (`SPACE_NOT_AVAILABLE`) if any requested `spaceId` is invisible** | Prevents "price probing" of restricted spaces |
 | `GET /v1/locations` / `:id` | Locations only (no embedded space list today) | **Verify and treat: if response computes embedded space counts, route them through the filter** | Inspect `LocationTransformer` for `spaceCount` / `availableSpaces` fields |
 | `GET /v1/bookings` / `:id` | The user's own bookings (which include space data) | **No filter** | A user's own historical bookings reference spaces they had access to at booking time; do not retroactively hide them. Future booking on a space the user lost access to is OK to surface — display normally; cancel-vs-honor is governed by the existing booking lifecycle, not by this PRD (per PRD US-7 AC). |
-| `GET /v1/tenants` / `:id` | Tenants only | **No filter on tenant fields** — but if `TenantTransformer` exposes any `spaceTypes` / `availableSports` derived from spaces, route those through the facet filter (below) |
-| `GET /v1/core/categories` | Sport / event categories | **Facet filter** (see § Facet endpoints below) |
+| `GET /v1/tenants` / `:id` | Tenants only | **No filter on tenant fields** | But if `TenantTransformer` exposes any `spaceTypes` / `availableSports` derived from spaces, route those through the facet filter (below) |
+| `GET /v1/core/categories` | Sport / event categories | **Facet filter** (see § Facet endpoints below) | Facets must not leak attributes unique to restricted spaces |
 
 #### `spark-external-client-api` (white-label / third-party — same `@PassGuestUser()` pattern)
 

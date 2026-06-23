@@ -4,17 +4,22 @@
 # in CLAUDE.md, workflows/sdlc.md, or .claude/rules/workflow-gates.md.
 #
 # Active tickets are declared by the /start-ticket skill. The marker
-# layout is two-tier (apexyard#41):
+# layout is three-tier (apexyard#41 + #513):
 #
-#   ops_root/.claude/session/tickets/<project>    ← per-project, preferred
-#   ops_root/.claude/session/current-ticket       ← ops-repo / fallback
+#   ops_root/.claude/session/tickets/<project>/<branch>  ← per-worktree (#513)
+#   ops_root/.claude/session/tickets/<project>           ← per-project (#41)
+#   ops_root/.claude/session/current-ticket              ← ops-repo / fallback
 #
-# Resolution order for a given FILE_PATH:
-#   1. If FILE_PATH is under ops_root/workspace/<project>/, look up
-#      ops_root/.claude/session/tickets/<project>. If present → exempt.
-#   2. Fall back to ops_root/.claude/session/current-ticket. If present →
-#      exempt.
+# Resolution order for a given FILE_PATH under ops_root/workspace/<project>/:
+#   0. If the file's repo is on a git worktree branch (or CLAUDE_WORKTREE_BRANCH
+#      is set), look up tickets/<project>/<safe-branch>. If present → exempt.
+#      (Lets parallel agents on the SAME project hold independent tickets.)
+#   1. Look up tickets/<project> (a FILE). If present → exempt.
+#   2. Fall back to current-ticket. If present → exempt.
 #   3. Otherwise, block with instructions.
+#
+# tickets/<project> is a FILE in single-agent mode, a DIRECTORY in worktree
+# mode; the `-f` tests keep tiers 0 and 1 from conflicting.
 #
 # Ops root is the apexyard fork root (has both onboarding.yaml and
 # apexyard.projects.yaml at the top level). It's discovered by walking
@@ -62,10 +67,34 @@ if [ "$TOOL_NAME" = "Bash" ]; then
     exit 0
   fi
 
+  # Deletion-only (rm without any content-writing sibling) does not add repo
+  # content, so it should not require a ticket (#569).
+  if bash_command_is_deletion_only "$COMMAND"; then
+    exit 0
+  fi
+
   # Try to extract a target path so we can apply the same path-based
   # exemptions (.claude/, docs/, *.md). If extraction fails, FILE_PATH
   # stays empty and the gate is applied categorically.
   FILE_PATH=$(bash_extract_write_target "$COMMAND")
+
+  # Variable target (e.g. `cat > "$VAR"`): the extractor returns the literal
+  # shell-variable token. Exempt a temp-dir var, and a BARE whole-target variable
+  # (`$CEO`, `${marker}` — unresolvable, in practice a .claude/ scratch path). A
+  # variable WITH a concatenated path tail (`$PWD/src/app.ts`, `$D/app.ts`,
+  # `$HOME/work/src/x.ts`) is NOT exempt — that path could be tracked source, and
+  # the old blanket `$*` exemption let such a write dodge the ticket gate (#582
+  # review: fail-open on a security gate). A var+tail target isn't bare and isn't
+  # absolute, so it falls through to the ticket gate below and blocks — which is
+  # the safe direction. (We deliberately do NOT expand $PWD/$HOME here: that adds
+  # nothing for blocking and tripped a /var↔/private/var symlink mismatch.)
+  case "$FILE_PATH" in
+    '$TMPDIR'/*|'${TMPDIR}'/*|'$TMP'/*|'${TMP}'/*) exit 0 ;;  # temp dir → outside the repo
+  esac
+  # Bare whole-target variable only (no path/extension tail) → exempt.
+  if printf '%s' "$FILE_PATH" | grep -qE '^\$\{?[A-Za-z_][A-Za-z0-9_]*\}?$'; then
+    exit 0
+  fi
 fi
 
 if [ -z "$FILE_PATH" ] && [ "$TOOL_NAME" != "Bash" ]; then
@@ -78,6 +107,26 @@ REL_PATH="$FILE_PATH"
 if [ -n "$REPO_ROOT" ] && [ -n "$FILE_PATH" ]; then
   case "$FILE_PATH" in
     "$REPO_ROOT"/*) REL_PATH="${FILE_PATH#$REPO_ROOT/}" ;;
+  esac
+fi
+
+# Bash-write: absolute paths outside the repo root are outside the tracked
+# source tree (e.g. /tmp/, /var/, /usr/, system-temp paths). A write there
+# cannot mutate apexyard-governed content, so no ticket is required (#569).
+# This check runs only for the Bash path (FILE_PATH set via extractor) and
+# only when FILE_PATH is absolute and does NOT strip to a REL_PATH (meaning
+# it's outside REPO_ROOT). We conservatively skip this for non-Bash tools —
+# they supply an explicit file_path from the tool call that we trust fully.
+if [ "$TOOL_NAME" = "Bash" ] && [ -n "$FILE_PATH" ] && [ -n "$REPO_ROOT" ]; then
+  case "$FILE_PATH" in
+    /*)
+      # Absolute path — was it stripped to a repo-relative form?
+      if [ "$REL_PATH" = "$FILE_PATH" ]; then
+        # REL_PATH is still absolute: FILE_PATH is NOT under REPO_ROOT.
+        # It's a system path or temp path — exempt.
+        exit 0
+      fi
+      ;;
   esac
 fi
 
@@ -215,6 +264,42 @@ if [ -z "$PROJECT" ] && [ -n "$OPS_ROOT" ]; then
   esac
 fi
 
+# Tier 0 — per-worktree marker (#513): when two agents are fanned out on the
+# SAME managed project in parallel git worktrees, each must declare its ticket
+# independently or they collide on the shared per-project file (last-writer-wins,
+# silent wrong-ticket pass). A branch-scoped marker at
+# tickets/<project>/<safe-branch> is resolved BEFORE the per-project tier.
+# Single-agent / non-worktree flows have no such marker and fall straight
+# through to the per-project tier — no behaviour change. Note: tickets/<project>
+# is a FILE in single-agent mode and a DIRECTORY in worktree mode; the `-f`
+# tests below distinguish them, so the two tiers never conflict.
+PER_WORKTREE_MARKER=""
+if [ -n "$PROJECT" ]; then
+  # Branch: prefer the harness-set env var (populated at worktree spawn). Else
+  # only treat the file's repo as worktree-scoped when it's a LINKED worktree,
+  # detected by comparing the ABSOLUTE git-dir against the ABSOLUTE common-dir
+  # (they differ only in a linked worktree). This matches /start-ticket's
+  # write-side detection exactly — no read/write asymmetry — and the absolute
+  # forms avoid the false positive where, in the main checkout from a subdir,
+  # `--git-dir` is absolute but `--git-common-dir` is relative.
+  WT_BRANCH="${CLAUDE_WORKTREE_BRANCH:-}"
+  if [ -z "$WT_BRANCH" ]; then
+    _fdir=$(dirname "$FILE_PATH")
+    _gd=$(git -C "$_fdir" rev-parse --absolute-git-dir 2>/dev/null)
+    _gcd=$(git -C "$_fdir" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)
+    if [ -n "$_gd" ] && [ "$_gd" != "$_gcd" ]; then
+      WT_BRANCH=$(git -C "$_fdir" branch --show-current 2>/dev/null)
+    fi
+  fi
+  if [ -n "$WT_BRANCH" ]; then
+    SAFE_BRANCH="${WT_BRANCH//\//__}"   # '/' → '__' for a filesystem-safe segment
+    PER_WORKTREE_MARKER="$MARKER_HOME/.claude/session/tickets/$PROJECT/$SAFE_BRANCH"
+    if [ -f "$PER_WORKTREE_MARKER" ]; then
+      exit 0
+    fi
+  fi
+fi
+
 PER_PROJECT_MARKER=""
 if [ -n "$PROJECT" ]; then
   PER_PROJECT_MARKER="$MARKER_HOME/.claude/session/tickets/$PROJECT"
@@ -249,6 +334,7 @@ To unblock:
   3. Retry the edit
 
 Markers looked up for this path (in order):
+$([ -n "$PER_WORKTREE_MARKER" ] && echo "  per-worktree: $PER_WORKTREE_MARKER")
 $([ -n "$PER_PROJECT_MARKER" ] && echo "  per-project:  $PER_PROJECT_MARKER")
   ops fallback: $FALLBACK_MARKER
 

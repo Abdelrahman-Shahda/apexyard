@@ -48,6 +48,7 @@ The posture is **conditional-pass**: there are **no Critical findings in source 
 ## Detailed findings + remediation
 
 ### H-1 — AuditController has no authorization (Broken Access Control)
+
 **Location**: `src/main/java/eg/judiciary/portal/shared/audit/web/AuditController.java:40` and `:49`
 **Description**: Both `GET /api/v1/audit/entities/{type}/{id}` and `GET /api/v1/audit/admins/{id}/activity` carry **no `@PreAuthorize`**. They are merely `authenticated()` via the filter chain. Every other domain controller (Admin, Role, Court, Judge, Lawyer, etc.) gates *both reads and writes* on a typed permission. The audit log is the most sensitive read surface in the system — it exposes the full mutation history of judiciary entities (PII snapshots) and the action trail of every other admin (insider-threat reconnaissance). Any low-privilege account can read all of it.
 **Impact**: Confidentiality breach of judiciary PII history + exposure of privileged users' activity to any authenticated principal. This is a classic A01 function-level authorization gap.
@@ -55,6 +56,7 @@ The posture is **conditional-pass**: there are **no Critical findings in source 
 **CWE**: CWE-862 (Missing Authorization).
 
 ### H-2 — Default super-admin `admin/admin1234`, enabled by default
+
 **Location**: `src/main/resources/application.properties:47-49`; `SuperAdminBootstrap.java:47`
 **Description**: `app.bootstrap.super-admin.enabled` defaults to `true` and the username/password default to `admin` / `admin1234`. A fresh deployment that doesn't set the override env vars seeds a god account with a trivially guessable credential. The seeder is otherwise well-built (soft-delete-aware idempotency, goes through normal hashing + audit), but the **defaults fail open**.
 **Impact**: Full system compromise via a publicly-known credential if any environment boots without overrides.
@@ -62,6 +64,7 @@ The posture is **conditional-pass**: there are **no Critical findings in source 
 **CWE**: CWE-798 (Use of Hard-coded Credentials), CWE-1392 (Default Credentials).
 
 ### H-3 — JWT secret placeholder fallback boots silently
+
 **Location**: `src/main/resources/application.properties:21`; consumed at `JwtService.java:33`
 **Description**: `app.security.jwt.secret=${APP_SECURITY_JWT_SECRET:change-me-please-use-a-32-byte-minimum-secret}`. If the env var is unset, the app boots successfully using the **committed** 32+ byte placeholder. jjwt only enforces *length*, not *secrecy* — so anyone with repo access can sign forged tokens for any admin id, including a fabricated super-admin subject (though authorities are re-resolved per-request, a forged token for a real super-admin's UUID grants full access).
 **Impact**: Complete authentication bypass / token forgery if any environment runs on the default secret.
@@ -69,30 +72,35 @@ The posture is **conditional-pass**: there are **no Critical findings in source 
 **CWE**: CWE-321 (Hard-coded Cryptographic Key), CWE-1188 (Insecure Default Initialization).
 
 ### M-1 — No brute-force protection on authentication
+
 **Location**: `AuthController.java:72-85`; no `bucket4j`/`resilience4j` in `pom.xml`
 **Description**: There is no rate limiting, account lockout, or backoff on `/auth/login` or `/auth/refresh`. Combined with the min-8 password policy (L-1), online password guessing and credential stuffing are unmitigated.
 **Remediation**: Add per-IP + per-username rate limiting (bucket4j filter, gateway/WAF rule, or a lockout counter on the Admin aggregate with exponential backoff). At minimum, throttle `/auth/login`.
 **CWE**: CWE-307 (Improper Restriction of Excessive Authentication Attempts).
 
 ### M-2 — Failed logins not audited
+
 **Location**: `AuthApplicationService.java:66-88` and the class javadoc (`:163-172` region)
 **Description**: Only `TOKEN_REUSE_DETECTED` and `PASSWORD_CHANGED` are audited; login/logout/refresh and **failed login attempts** are deliberately excluded. For a Ministry of Justice system, the absence of a failed-auth trail materially weakens intrusion detection and post-incident forensics.
 **Remediation**: Emit a low-cardinality `LOGIN_FAILED` audit (or at least a security log event with username + source IP + timestamp), ideally rate-aggregated to avoid log flooding. Pairs naturally with M-1's lockout counter.
 **CWE**: CWE-778 (Insufficient Logging).
 
 ### M-3 — Actuator metrics/prometheus exposed unauthenticated
+
 **Location**: `application.properties:31`; `SecurityConfig.java:41-44`
 **Description**: The `@Order(1)` actuator chain `permitAll()`s **every** exposed endpoint. Exposed set is `health,info,metrics,prometheus,modulith`. `health` is correctly `when_authorized`, but `metrics`, `prometheus`, and `modulith` are reachable without auth and leak operational/topology internals.
 **Remediation**: Restrict the actuator chain to require authentication (or a monitoring role) for `metrics`/`prometheus`/`modulith`, or bind the management port to an internal-only interface. Keep only `health`/`info` public if a load balancer needs them.
 **CWE**: CWE-200 (Exposure of Sensitive Information).
 
 ### M-4 — Spoofable client IP in session forensics
+
 **Location**: `AuthController.java:107-113` (`clientIp`)
 **Description**: `X-Forwarded-For` is trusted unconditionally and the first token is recorded as the session source IP — the same IP that feeds reuse-detection forensics. A client controls this header end-to-end unless a trusted proxy overwrites it.
 **Remediation**: Only honour `X-Forwarded-For` from a configured trusted-proxy allowlist (Spring's `ForwardedHeaderFilter` / `server.forward-headers-strategy=FRAMEWORK` behind a known proxy); otherwise use `getRemoteAddr()`.
 **CWE**: CWE-348 (Use of Less Trusted Source).
 
 ### L-1 / L-2 / L-3 / L-4
+
 - **L-1** Strengthen password policy: complexity or, better, length-forward (min 12) + HIBP breached-password check for privileged accounts. (`RegisterAdminRequest.java:30`, `ChangePasswordRequest.java:14`)
 - **L-2** Raise BCrypt cost to 12 or adopt `Argon2PasswordEncoder` via `DelegatingPasswordEncoder` (keeps existing hashes upgradable). (`PasswordEncoderConfig.java:14`)
 - **L-3** Username-enumeration timing oracle: the not-found branch returns before BCrypt runs. Run a dummy BCrypt comparison on the not-found path to equalise timing. (`AuthApplicationService.java:163-172`)

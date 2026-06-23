@@ -59,6 +59,15 @@
 
 set -u
 
+# Test isolation (#528): apply-agent-routing.sh resolves the ops root via
+# _lib-ops-root.sh, which — inside a real Claude Code session — honours the
+# session pin ($APEXYARD_OPS_PIN_DIR/ops-root-$CLAUDE_CODE_SESSION_ID) and
+# points at the REAL fork, NOT our mktemp sandbox. That made the hook rewrite
+# the real .claude/agents/*.md and write a stray snapshot there, while every
+# sandbox assertion failed. Disable the pin so ops-root resolves by walk-up to
+# the sandbox. (Hooks run headless in CI have no pin, so this is a no-op there.)
+export APEXYARD_OPS_DISABLE_PIN=1
+
 SRC_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 SYNC_HOOK="$SRC_ROOT/.claude/hooks/apply-agent-routing.sh"
 DRIFT_HOOK="$SRC_ROOT/.claude/hooks/block-agent-routing-drift.sh"
@@ -196,6 +205,70 @@ read_model_line() {
   awk '/^---/{count++; next} count==1 && /^model:/ {sub(/^model:[[:space:]]*/, ""); print; exit}' "$1"
 }
 
+# ===========================================================================
+# Mock curl helper for the endpoint/Ollama-path cases (case 4 + cases 9-13).
+#
+# Drops a fake `curl` script onto $PATH that consults $APEXYARD_MOCK_CURL_DIR
+# for canned responses. Each fixture is named by the sanitised URL and
+# contains `<HTTP_STATUS>\n<BODY>`. Missing fixture = simulated network
+# failure (exit 7). Honours `--fail` so the hook's reachability check
+# behaves like real curl would. Defined here (near the top) so cases earlier
+# than the Ollama block (e.g. case 4 idempotency) can also use it. (#528)
+# ===========================================================================
+make_mock_curl() {
+  local sb="$1"
+  local fixture_dir="$sb/.test-curl-fixtures/bin"
+  mkdir -p "$fixture_dir"
+  cat > "$fixture_dir/curl" <<'CURL_MOCK'
+#!/bin/bash
+# Mock curl — for hook tests only.
+url=""
+fail=0
+output_target=""
+expect_output_target=0
+for arg in "$@"; do
+  if [ "$expect_output_target" = "1" ]; then
+    output_target="$arg"
+    expect_output_target=0
+    continue
+  fi
+  case "$arg" in
+    -s|--silent) ;;
+    -f|--fail)   fail=1 ;;
+    -o)          expect_output_target=1 ;;
+    --max-time)  expect_output_target=1 ;;
+    --max-time=*) ;;
+    http*) url="$arg" ;;
+    *) ;;
+  esac
+done
+# If `--max-time <N>` consumed N as the output_target, undo that.
+case "$output_target" in
+  ''|[0-9]*) output_target="" ;;
+esac
+[ -z "$url" ] && exit 1
+key=$(printf '%s' "$url" | tr '/:?&=' '_____' | tr -s '_')
+fixture="${APEXYARD_MOCK_CURL_DIR:-/nonexistent}/$key"
+if [ -f "$fixture" ]; then
+  status=$(head -1 "$fixture")
+  body=$(tail -n +2 "$fixture")
+  if [ "$status" -ge 400 ] && [ "$fail" = "1" ]; then
+    exit 22
+  fi
+  if [ "$output_target" = "/dev/null" ] || [ -z "$output_target" ]; then
+    printf '%s' "$body"
+  else
+    printf '%s' "$body" > "$output_target"
+  fi
+  exit 0
+fi
+# No fixture = unreachable / connection refused
+exit 7
+CURL_MOCK
+  chmod +x "$fixture_dir/curl"
+  echo "$fixture_dir"
+}
+
 # emit the JSON envelope a PreToolUse hook expects on stdin.
 hook_stdin() {
   local cmd="$1"
@@ -297,6 +370,14 @@ rm -rf "$SB"
 # same end state, no compounded writes.
 # ===========================================================================
 SB=$(make_fork)
+# Mock the endpoint as reachable so the ANTHROPIC_BASE_URL row is written
+# deterministically (without a real listener on :11434 the hook correctly
+# filters the unreachable endpoint, and the endpoint_count assertion below
+# would be testing the environment, not idempotency). #528
+MOCK_BIN=$(make_mock_curl "$SB")
+APEXYARD_MOCK_CURL_DIR=$(mktemp -d)
+export APEXYARD_MOCK_CURL_DIR
+printf '200\n[]\n' > "$APEXYARD_MOCK_CURL_DIR/http_localhost_11434_v1_models"
 cat > "$SB/agent-routing.yaml" <<'YAML'
 version: 1
 agents:
@@ -307,7 +388,7 @@ agents:
       MY_VAR: hello
 YAML
 
-(cd "$SB" && bash .claude/hooks/apply-agent-routing.sh 2>&1 < /dev/null || true) >/dev/null
+(cd "$SB" && ANTHROPIC_BASE_URL=http://localhost:11434 PATH="$MOCK_BIN:$PATH" bash .claude/hooks/apply-agent-routing.sh 2>&1 < /dev/null || true) >/dev/null
 
 # Capture state after first run.
 first_qa=$(read_model_line "$SB/.claude/agents/qa-engineer.md")
@@ -315,7 +396,7 @@ first_env=""
 [ -f "$SB/.claude/session/agent-env/qa-engineer.env" ] && first_env=$(cat "$SB/.claude/session/agent-env/qa-engineer.env")
 
 # Run again.
-(cd "$SB" && bash .claude/hooks/apply-agent-routing.sh 2>&1 < /dev/null || true) >/dev/null
+(cd "$SB" && ANTHROPIC_BASE_URL=http://localhost:11434 PATH="$MOCK_BIN:$PATH" bash .claude/hooks/apply-agent-routing.sh 2>&1 < /dev/null || true) >/dev/null
 
 second_qa=$(read_model_line "$SB/.claude/agents/qa-engineer.md")
 second_env=""
@@ -455,68 +536,8 @@ else
 fi
 rm -rf "$SB"
 
-# ===========================================================================
-# Mock curl helper for the Ollama-path cases (cases 9-13).
-#
-# Drops a fake `curl` script onto $PATH that consults $APEXYARD_MOCK_CURL_DIR
-# for canned responses. Each fixture is named by the sanitised URL and
-# contains `<HTTP_STATUS>\n<BODY>`. Missing fixture = simulated network
-# failure (exit 7). Honours `--fail` so the hook's reachability check
-# behaves like real curl would.
-# ===========================================================================
-make_mock_curl() {
-  local sb="$1"
-  local fixture_dir="$sb/.test-curl-fixtures/bin"
-  mkdir -p "$fixture_dir"
-  cat > "$fixture_dir/curl" <<'CURL_MOCK'
-#!/bin/bash
-# Mock curl — for hook tests only.
-url=""
-fail=0
-output_target=""
-expect_output_target=0
-for arg in "$@"; do
-  if [ "$expect_output_target" = "1" ]; then
-    output_target="$arg"
-    expect_output_target=0
-    continue
-  fi
-  case "$arg" in
-    -s|--silent) ;;
-    -f|--fail)   fail=1 ;;
-    -o)          expect_output_target=1 ;;
-    --max-time)  expect_output_target=1 ;;
-    --max-time=*) ;;
-    http*) url="$arg" ;;
-    *) ;;
-  esac
-done
-# If `--max-time <N>` consumed N as the output_target, undo that.
-case "$output_target" in
-  ''|[0-9]*) output_target="" ;;
-esac
-[ -z "$url" ] && exit 1
-key=$(printf '%s' "$url" | tr '/:?&=' '_____' | tr -s '_')
-fixture="${APEXYARD_MOCK_CURL_DIR:-/nonexistent}/$key"
-if [ -f "$fixture" ]; then
-  status=$(head -1 "$fixture")
-  body=$(tail -n +2 "$fixture")
-  if [ "$status" -ge 400 ] && [ "$fail" = "1" ]; then
-    exit 22
-  fi
-  if [ "$output_target" = "/dev/null" ] || [ -z "$output_target" ]; then
-    printf '%s' "$body"
-  else
-    printf '%s' "$body" > "$output_target"
-  fi
-  exit 0
-fi
-# No fixture = unreachable / connection refused
-exit 7
-CURL_MOCK
-  chmod +x "$fixture_dir/curl"
-  echo "$fixture_dir"
-}
+# (make_mock_curl is defined near the top, alongside read_model_line, so the
+# earlier endpoint cases — e.g. case 4 idempotency — can use it too. #528)
 
 # ===========================================================================
 # CASE 9 — Ollama agent with reachable proxy + pulled model.

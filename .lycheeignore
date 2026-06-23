@@ -3,6 +3,9 @@
 https://github.com/me2resh/apexyard.*
 https://github.com/me2resh/curios-dog.*
 https://github.com/me2resh/SharpPick.*
+# This fork's private managed-project repos (Moj, dfn, booking-system) — private,
+# so unauthenticated lychee always 404s on their repo/issue URLs in projects/ docs.
+https://github.com/apessolutions/.*
 
 # Medium author URLs return 403 to bot user-agents (transient anti-scraping
 # protection). The link works in browsers; lychee-action's user-agent gets
@@ -17,3 +20,7 @@ https://medium\.com/@sathishkraju/.*
 # Provision certificate), separate concern from any framework diff.
 https://me2resh\.com.*
 https://yard\.apexscript\.com.*
+
+# v3 removed the site/ marketing dir; stale relative links to it (e.g. in
+# docs/agdr/AgDR-0018) are dead by design on this fork.
+site/index\.html

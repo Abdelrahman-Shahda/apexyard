@@ -233,7 +233,7 @@ run_case "non-gh command → no-op" \
 # in body — production rule would BLOCK; spike exemption flips to PASS.
 DIR=$(setup_repo c1_base c1_feat)
 run_case "spike PR title (arch change, no AgDR) → PASS via spike exemption" \
-  "$DIR" 0 "spike PR detected" \
+  "$DIR" 0 "spike/prototype PR detected" \
   "gh pr create --base main --title 'spike(#180): explore X' --body 'just a spike'"
 
 # Spike signal (c): branch name starts with `spike/`. Set the feature branch
@@ -247,7 +247,7 @@ spike_branch_setup() {
 
 DIR=$(spike_branch_setup)
 run_case "spike branch name (arch change, no AgDR, non-spike PR title) → PASS via branch signal" \
-  "$DIR" 0 "spike PR detected" \
+  "$DIR" 0 "spike/prototype PR detected" \
   "gh pr create --base main --title 'feat(#180): tweak domain' --body 'just exploring'"
 
 # Spike signal (b): active-ticket marker references a [Spike] ticket.
@@ -278,8 +278,77 @@ EOF
 
 DIR=$(spike_marker_setup)
 run_case "spike active-ticket marker (arch change, non-spike branch + title) → PASS via marker signal" \
-  "$DIR" 0 "spike PR detected" \
+  "$DIR" 0 "spike/prototype PR detected" \
   "gh pr create --base main --title 'feat(#180): tweak domain' --body 'no AgDR'"
+
+# ---------------------------------------------------------------------------
+# Prototype exemption (apexyard#673) — same three signals as spike; any one
+# wins. Prototype work is throw-away UX/demo exploration and shares the spike
+# AgDR exemption.
+# ---------------------------------------------------------------------------
+
+# Prototype signal (a): PR title type = `prototype(...)`.
+DIR=$(setup_repo c1_base c1_feat)
+run_case "prototype PR title (arch change, no AgDR) → PASS via prototype exemption" \
+  "$DIR" 0 "spike/prototype PR detected" \
+  "gh pr create --base main --title 'prototype(#673): explore look-and-feel' --body 'just a prototype'"
+
+# Prototype signal (c): branch name starts with `prototype/`.
+prototype_branch_setup() {
+  local dir
+  dir=$(setup_repo c1_base c1_feat)
+  ( cd "$dir" && git branch -m prototype/GH-673-explore ) >/dev/null 2>&1
+  echo "$dir"
+}
+
+DIR=$(prototype_branch_setup)
+run_case "prototype branch name (arch change, no AgDR, non-prototype PR title) → PASS via branch signal" \
+  "$DIR" 0 "spike/prototype PR detected" \
+  "gh pr create --base main --title 'feat(#673): tweak domain' --body 'just exploring UX'"
+
+# Prototype signal (b): active-ticket marker referencing a [Prototype] ticket
+# is supported by the hook (see require-agdr-for-arch-pr.sh — the marker grep
+# matches `^title=\[(Spike|Prototype)\]`). It is NOT asserted here because it
+# shares the same in-sandbox ops-root resolution limitation as the pre-existing
+# "spike active-ticket marker" case above (the marker fixture's ops root isn't
+# resolved inside the test sandbox). Signals (a) PR-title-type and (c)
+# branch-name — both exercised above — give the prototype exemption equivalent
+# coverage to the spike exemption's reliably-green signals.
+
+# ---------------------------------------------------------------------------
+# Regression: embedded-quote truncation bug (apexyard#461).
+#
+# The original sed extractor used `[^"]*` which stopped at the first embedded
+# double-quote inside --body, false-blocking PRs where quoted text appeared
+# before the AgDR reference or the skip marker.
+#
+# These cases exercise the three required sub-scenarios from the ticket ACs:
+#   (A) AgDR reference follows an embedded quote → hook PASSES.
+#   (B) Skip marker follows an embedded quote     → hook PASSES with warn.
+#   (C) Embedded quote, but NO AgDR reference     → hook still BLOCKS
+#       (true-negative: verifying we haven't over-corrected the gate).
+#
+# All three use the c1_base/c1_feat arch-change fixture so the hook's
+# arch-detection fires and the body-check is actually reached.
+# ---------------------------------------------------------------------------
+
+# (A) AgDR reference comes after embedded quote text → PASS.
+DIR=$(setup_repo c1_base c1_feat)
+run_case "embedded quote before AgDR ref → PASS (no false-block) [#461-A]" \
+  "$DIR" 0 "" \
+  "gh pr create --base main --title 'feat(#1): tweak domain' --body 'Summary: uses \"greedy\" matching. See AgDR-0007-tweak-domain for rationale.'"
+
+# (B) Skip marker follows an embedded quote → PASS with skip-marker warning.
+DIR=$(setup_repo c1_base c1_feat)
+run_case "embedded quote before skip marker → PASS with skip warning [#461-B]" \
+  "$DIR" 0 "agdr: not-applicable marker present" \
+  "gh pr create --base main --title 'refactor(#2): move domain' --body 'Uses \"pure\" rename. <!-- agdr: not-applicable -->'"
+
+# (C) Embedded quote, but genuinely NO AgDR reference and NO skip marker → still BLOCK.
+DIR=$(setup_repo c1_base c1_feat)
+run_case "embedded quote, no AgDR ref at all → still BLOCKS (true-negative) [#461-C]" \
+  "$DIR" 2 "no AgDR reference" \
+  "gh pr create --base main --title 'feat(#3): tweak domain' --body 'Uses \"greedy\" matching but forgot to add the decision record.'"
 
 # ---------------------------------------------------------------------------
 # Result

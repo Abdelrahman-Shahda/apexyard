@@ -17,6 +17,7 @@
 ## Current State
 
 ### Tech stack
+
 - Language: TypeScript (~4.79 MB, dominant) with smaller pockets of Python (55 KB), Shell (78 KB), PowerShell (24 KB), PLpgSQL (5 KB), Handlebars (24 KB)
 - Runtime: Node 20 (per `Dockerfile` base image `node:20-alpine`) — `package.json` does **not** declare an `engines` field
 - Framework: **NestJS 10** (CQRS, BullMQ, JWT, Passport, Mongoose, TypeORM, Swagger) on the backend; **React 18 + MUI v5 + Vite** on the frontend, bundled together as an **Nx 20.2.2 monorepo**
@@ -29,12 +30,14 @@
 - CI: GitHub Actions on **self-hosted runners**; three workflows (`ci-dev.yml`, `ci-prod.yml`, `ci-temp.yml`). The dev workflow builds Docker images locally on the runner, then SSHes to a hard-coded EC2 IP (`18.216.171.111`) and runs `sudo bash ./deploy.sh`.
 
 ### Apps & libs (Nx workspace)
+
 - **Backend apps** (NestJS): `web-api`, `mobile-api`, `org`, `ai-engine`, `meal-engine`
 - **Frontend apps** (React/Vite + MUI): `admin-dashboard`, `org` (overlaps with backend — needs clarification)
 - **e2e apps**: `mobile-api-e2e`, `org-e2e`, `web-api-e2e`
 - **Libs** (40+): `auth`, `payment-provider`, `meal-plan`, `meal-engine`, `workout-engine`, `recipes`, `ingredients`, `notifications`, `mail`, `i18n`, `database`, `redis`, `logger`, `audit-trail`, `auth-log`, `cart`, `promo-code`, `transaction`, `user-subscription`, `user-workflow`, `leads`, `campaigns`, `file`, `package`, `role`, `addon`, `banner`, … (domain-rich)
 
 ### Build status
+
 - `pnpm install`: **not attempted** (no local clone)
 - `pnpm nx build <app>`: **not attempted**
 - `pnpm nx test`: **not attempted**
@@ -53,9 +56,11 @@ CI signal as a proxy (last 5 runs on `development`):
 4-of-5 green; the one failure was fixed in the next push. Baseline is reasonably healthy on the deploy-dev path, but coverage and lint thresholds aren't visible from the workflow alone.
 
 ### Test coverage
+
 - Estimated: **unknown** — no coverage report wired into CI, no badge in README. Vitest + Jest are both configured, so the infrastructure exists; threshold is uncommitted.
 
 ### Repo activity
+
 - Commits in last 90 days: **84** (high cadence — ~1 commit/day)
 - Open issues: **0** (likely tracked elsewhere — Spark uses GitHub Issues, DFN may not yet)
 - Open PRs: **1** (#65 — feat: Implement user seeding functionality)
@@ -70,6 +75,7 @@ CI signal as a proxy (last 5 runs on `development`):
 ## Quality Risks
 
 ### Security
+
 - **`.env.deployment` files are COPIED into the production Docker image** (see Dockerfile lines `COPY ./apps/org/.env.deployment ./apps/org/.env`, same for `web-api` and `mobile-api`). Secrets land in the image layer and survive image inspection. Should be injected at runtime (compose env vars / SSM / Vault), not baked.
 - **Hard-coded EC2 IP in CI** (`18.216.171.111`) — single point of failure, undocumented host, no DNS abstraction.
 - **No `LICENSE` file** — private repo, but absent license complicates future contractor / partnership / open-source decisions.
@@ -77,12 +83,14 @@ CI signal as a proxy (last 5 runs on `development`):
 - **Auth + crypto surface present**: `@nestjs/jwt`, `@nestjs/passport`, `passport-jwt`, `bcryptjs`, Firebase Admin, Twilio (SMS OTP via `otp-generator`). Standard NestJS auth shape, but a Security Auditor pass is warranted before considering this "active".
 
 ### Dependencies
+
 - **Mixed package-manager lockfiles** — both `package-lock.json` and `pnpm-lock.yaml` checked in. Whichever the Dockerfile resolves (`pnpm`) is the production source of truth; npm-installed local dev environments can diverge silently.
 - **`express ^5.2.1`** — Express 5 is still relatively new; middleware ecosystem maturity should be confirmed for the routes that use raw Express (most NestJS code is abstracted from this, but `multer`, `morgan`, `bull-board/express` touch it).
 - **No declared `engines.node`** — local dev Node version drift across the 6-contributor team.
 - Several dependencies pinned to broad caret ranges (`^`) with no Renovate / Dependabot config visible from the workflows directory.
 
 ### Technical debt
+
 - **README is Nx scaffolding boilerplate** ("✨ Your new, shiny Nx workspace is ready ✨") — no domain summary, no architecture pointer, no how-to-run-locally, no deploy story.
 - **Two apps named `org`** (one backend NestJS app, one frontend React app) — namespace collision; raises ambiguity in Nx commands and in this assessment.
 - **`new_ingredients.json` + `old_ingredients.json`** sitting at repo root — looks like seeding artefacts that should live under `libs/database/.../seeds/` or be gitignored.
@@ -90,6 +98,7 @@ CI signal as a proxy (last 5 runs on `development`):
 - **TypeORM + Mongoose dual ORM** — increases cognitive load for the team and doubles the migration surface. Worth an AgDR if not already documented.
 
 ### Operational
+
 - **No observability stack detected** in dependencies — only `winston` + `winston-daily-rotate-file` for logs. No Sentry, Datadog, New Relic, OpenTelemetry, CloudWatch SDK direct usage. Logs land on disk inside the EC2 box.
 - **Deploy is `ssh && sudo bash deploy.sh`** to a pet server — rollback story, blue/green, health-check gating all unclear from the workflow alone.
 - **No issue tracker activity** — 0 open issues despite 84 commits in 90 days. Either tracked off-GitHub (Linear / Jira / Notion) or not tracked. Either way, the SDLC gate "ticket exists before code" is currently informal.
@@ -98,6 +107,7 @@ CI signal as a proxy (last 5 runs on `development`):
 ## Integration Plan
 
 ### Roles that apply
+
 - `tech-lead` — always
 - `backend-engineer` — NestJS, TypeORM, BullMQ, CQRS work
 - `frontend-engineer` — React/MUI/Vite work in `admin-dashboard` and `org` (frontend)
@@ -107,6 +117,7 @@ CI signal as a proxy (last 5 runs on `development`):
 - `data-engineer` — TypeORM migrations, dual Postgres+Mongo stores, seed scripts
 
 ### Workflows that kick in
+
 - [ ] PR workflow (`.claude/rules/pr-workflow.md`) — every change goes through a PR (currently direct pushes to `development` are common; needs branch protection)
 - [ ] AgDR for technical decisions (dual-ORM, Express 5 adoption, BullMQ vs raw Bull, self-hosted runner choice — all worth retroactive AgDRs)
 - [ ] Code Reviewer agent on every PR
@@ -114,6 +125,7 @@ CI signal as a proxy (last 5 runs on `development`):
 - [ ] `/audit-deps dfn` on adoption and monthly thereafter
 
 ### Hooks to enable
+
 - [ ] `block-git-add-all`
 - [ ] `block-main-push` (apply to `development` since that's the default branch)
 - [ ] `validate-branch-name` — set `ticket_prefix: DFN` (or `GH` if migrating to GitHub Issues)
@@ -123,6 +135,7 @@ CI signal as a proxy (last 5 runs on `development`):
 - [ ] `require-migration-ticket` (TypeORM migration files live under `libs/database/src/lib/sources` — confirm and update `.claude/project-config.json` paths if needed)
 
 ### CI templates to copy in
+
 - [ ] `golden-paths/pipelines/ci.yml` — combined quality + security + dependency-audit
 - [ ] `golden-paths/pipelines/security.yml` — Semgrep + npm audit + secrets scan (especially relevant given the `.env.deployment` concern)
 - [ ] `golden-paths/pipelines/pr-title-check.yml` — enforce `type(DFN-N): subject`
