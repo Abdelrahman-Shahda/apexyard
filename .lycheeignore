@@ -3,6 +3,9 @@
 https://github.com/me2resh/apexyard.*
 https://github.com/me2resh/curios-dog.*
 https://github.com/me2resh/SharpPick.*
+# This fork's private managed-project repos (Moj, dfn, booking-system) — private,
+# so unauthenticated lychee always 404s on their repo/issue URLs in projects/ docs.
+https://github.com/apessolutions/.*
 
 # Medium author URLs return 403 to bot user-agents (transient anti-scraping
 # protection). The link works in browsers; lychee-action's user-agent gets
