@@ -28,7 +28,7 @@ These four hooks make the SDLC mechanical instead of advisory. Each enforces a r
 
 **Event:** `PreToolUse` on `Edit | Write | MultiEdit`.
 
-**What it does:** blocks edits to any code path unless a session marker exists. Resolution is two-tier (#41): per-project marker at `<ops_root>/.claude/session/tickets/<project>` when `FILE_PATH` is under `<ops_root>/workspace/<project>/`, otherwise falls back to `<ops_root>/.claude/session/current-ticket`. Exempts `.claude/`, `docs/`, `projects/*/docs/`, and any `*.md` file so framework / doc / meta work is still fluid.
+**What it does:** blocks edits to any code path unless a session marker exists. Resolution is three-tier (#41 + #513): (0) per-worktree marker at `<ops_root>/.claude/session/tickets/<project>/<safe-branch>` when the edited file's repo is on a git-worktree branch — lets parallel agents on the *same* project hold independent tickets; (1) per-project marker at `<ops_root>/.claude/session/tickets/<project>` (a FILE) when `FILE_PATH` is under `<ops_root>/workspace/<project>/`; (2) fallback `<ops_root>/.claude/session/current-ticket`. Exempts `.claude/`, `docs/`, `projects/*/docs/`, and any `*.md` file so framework / doc / meta work is still fluid.
 
 **Enforces:** the Pre-Build Gate in `.claude/rules/workflow-gates.md` — "do not start coding until the ticket exists, has acceptance criteria, and is broken into tasks."
 
@@ -64,10 +64,12 @@ If any gate fails, blocks with a message pointing at the `/migration` skill. If 
 
 **What it does:** blocks the merge unless **both** approval markers exist for the PR number being merged, and both contain a SHA that matches the current HEAD. New commits after either approval invalidate it.
 
-| Marker | Path | Written by | Semantics |
-|--------|------|------------|-----------|
-| Rex | `.claude/session/reviews/<pr>-rex.approved` | `code-reviewer` agent after a successful review | "Code reviewed, no blocking issues" |
-| CEO | `.claude/session/reviews/<pr>-ceo.approved` | `/approve-merge <pr>` skill, **only** on explicit user invocation | "The human approver has looked at this specific PR and said ship it" |
+| Marker | Path (repo-qualified since #485) | Written by | Semantics |
+|--------|----------------------------------|------------|-----------|
+| Rex | `.claude/session/reviews/<owner>__<repo>__<pr>-rex.approved` | `code-reviewer` agent after a successful review | "Code reviewed, no blocking issues" |
+| CEO | `.claude/session/reviews/<owner>__<repo>__<pr>-ceo.approved` | `/approve-merge <pr>` skill, **only** on explicit user invocation | "The human approver has looked at this specific PR and said ship it" |
+
+Marker paths are constructed via `_lib-review-markers.sh::review_marker_path <owner/repo> <pr> <role>`. The double-underscore separator ensures the (owner, repo, pr) triple is unambiguous — GitHub slugs never contain `__`. This prevents same-numbered PRs in different managed repos from colliding on the same marker filename (AgDR-0060).
 
 Both files contain exactly one line: the 40-character HEAD SHA at the time of approval. The hook reads each, compares with `git rev-parse HEAD`, and blocks on any mismatch.
 
@@ -174,7 +176,7 @@ All path patterns use the `(^|/)` anchor so they catch **monorepo layouts** (`ba
 
 **Event:** `PreToolUse` on `Bash(gh pr merge *)`.
 
-**What it does:** if the PR's diff touches any UI file, requires a design-approval marker at `.claude/session/reviews/<pr>-design.approved` with a SHA matching HEAD. Non-UI PRs bypass silently.
+**What it does:** if the PR's diff touches any UI file, requires a design-approval marker at `.claude/session/reviews/<owner>__<repo>__<pr>-design.approved` (repo-qualified, see AgDR-0060) with a SHA matching HEAD. Non-UI PRs bypass silently.
 
 **Default UI paths** (regex):
 
@@ -193,7 +195,7 @@ design-tokens
 
 **Companion skill:** `/approve-design <pr>` (in `.claude/skills/approve-design/`) writes the marker. It follows the same pattern as `/approve-merge`: verify PR state → verify Rex marker at HEAD → write the design marker at the repo root → confirm → stop. The skill definition includes explicit valid/invalid triggers and an anti-pattern section distinguishing mockup approval (design phase) from implementation-review approval (PR phase).
 
-**Manual fallback:** for projects that deliberately skip design review (admin tools, internal dashboards), `touch .claude/session/reviews/<pr>-design.approved` is a visible, auditable "we decided to skip" artifact rather than an invisible omission.
+**Manual fallback:** for projects that deliberately skip design review (admin tools, internal dashboards), create `touch .claude/session/reviews/<owner>__<repo>__<pr>-design.approved` (using the repo-qualified name) as a visible, auditable "we decided to skip" artifact.
 
 **Enforces:** `.claude/rules/pr-quality.md § "Design Review (UI Changes)"` and `workflows/code-review.md § "UI Designer (conditional)"` — both prose-only until this hook shipped.
 
@@ -322,6 +324,7 @@ These were already in place before the enforcement layer and remain unchanged (e
 | `block-main-push.sh` | PreToolUse / Bash | Blocks pushing to `main` / `master` |
 | `validate-branch-name.sh` | PreToolUse / Bash | **Warns** on non-conforming branch names before push (warning-only; warning→blocker upgrade deferred to a follow-up ticket — breaking change) |
 | `check-secrets.sh` | PreToolUse / Bash | Scans commits for hardcoded secrets |
+| `block-onboarding-in-git.sh` | PreToolUse / Bash | Blocks committing a filled-in `onboarding.yaml` (placeholder-diff vs `onboarding.example.yaml`); env/marker escape hatch (#517) |
 | `pre-push-gate.sh` | PreToolUse / Bash | Reminds to run lint / typecheck / test / build |
 | `validate-pr-create.sh` | PreToolUse / Bash | **Blocks** on title format / glossary / branch ID (upgraded from warning in GH-20). Also **blocks** when the title's issue number doesn't exist in the tracker (extended in GH-14). |
 
@@ -332,10 +335,14 @@ These were already in place before the enforcement layer and remain unchanged (e
 ```
 .claude/session/
 ├── onboarded                     # created by /onboard, read by onboarding-check
-├── current-ticket                # created by /start-ticket, read by require-active-ticket
+├── tickets/<project>             # per-project ticket marker (FILE) — #41
+├── tickets/<project>/<branch>    # per-worktree ticket marker — #513 (DIR form; parallel agents)
+├── current-ticket                # created by /start-ticket, read by require-active-ticket (fallback)
 ├── pending-reviews/<pr>          # created by auto-code-review, tracks PRs awaiting Rex
-├── reviews/<pr>-rex.approved     # created by code-reviewer agent, read by merge-gate
-└── reviews/<pr>-ceo.approved     # created by /approve-merge, read by merge-gate
+├── reviews/<owner>__<repo>__<pr>-rex.approved           # created by code-reviewer agent, read by merge-gate
+├── reviews/<owner>__<repo>__<pr>-ceo.approved           # created by /approve-merge, read by merge-gate
+├── reviews/<owner>__<repo>__<pr>-design.approved        # created by /approve-design, read by UI merge-gate
+└── reviews/<owner>__<repo>__<pr>-architecture.approved  # created by /approve-architecture or Tariq
 ```
 
 If a marker gets stale, delete the file and re-run the corresponding skill.

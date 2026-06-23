@@ -1,0 +1,133 @@
+# =============================================================================
+# ApexYard Onboarding Configuration — EXAMPLE TEMPLATE
+# =============================================================================
+#
+# This is the TRACKED placeholder template (committed to the repo). Your real
+# configuration lives in `onboarding.yaml`, which is GITIGNORED and never
+# committed — the same convention as `.env.example` / `.env`.
+#
+# Don't edit this file with real values. Instead run `/setup`, which copies
+# this template to `onboarding.yaml` (gitignored) and fills it in locally.
+# A commit-time guard (block-onboarding-in-git.sh) backstops the gitignore so a
+# filled-in `onboarding.yaml` can't reach a public fork or an upstream PR.
+#
+# Split-portfolio v2 adopters: your real config lives in the private sibling
+# repo; this example stays in the public framework fork.
+
+# -----------------------------------------------------------------------------
+# ApexYard Setup
+# -----------------------------------------------------------------------------
+# ApexYard governs a PORTFOLIO of repos as one organisation. The repo this
+# file lives in is your "ops repo" — ApexYard itself, forked from
+# me2resh/apexyard. A registry file (apexyard.projects.yaml) lists every
+# managed project. Skills like /projects, /inbox, /status, /tasks aggregate
+# across the registry. Per-project docs live in projects/<name>/, and live
+# working copies (optional) live in workspace/<name>/.
+#
+# See docs/setup.md for the full guide.
+
+# -----------------------------------------------------------------------------
+# Company Information
+# -----------------------------------------------------------------------------
+company:
+  name: "Your Company Name"
+  mission: ""
+  vision: ""
+  website: ""
+
+  # Core values that guide decision-making
+  values:
+    - "Quality over speed"
+    - "Ship and learn"
+    - "Keep it simple"
+
+  # What kind of software you build
+  products:
+    - name: "Main Platform"
+      description: "Describe your primary product in one line"
+      type: "saas"
+
+# -----------------------------------------------------------------------------
+# Team Structure
+# -----------------------------------------------------------------------------
+team:
+  - name: "Your Name"
+    role: "head-of-engineering"
+    department: "engineering"
+    responsibilities:
+      - "Platform"
+      - "Security"
+      - "Architecture"
+    title: "Your Title"
+
+# -----------------------------------------------------------------------------
+# Tech Stack
+# -----------------------------------------------------------------------------
+tech_stack:
+  language: "TypeScript"           # Primary language
+  runtime: "Node.js"
+  framework: ""                    # Frontend framework (e.g. React, Vue)
+  backend: ""                      # Backend framework (e.g. NestJS, Express)
+  database: ""                     # e.g. PostgreSQL, MySQL
+  hosting: ""                      # e.g. AWS, GCP, Vercel
+  cdn: ""
+  ci_cd: "GitHub Actions"
+  testing: "Vitest"
+  e2e_testing: "Playwright"
+  iac: ""                          # e.g. AWS SAM, Terraform, CDK
+
+# -----------------------------------------------------------------------------
+# Project Management
+# -----------------------------------------------------------------------------
+project_management:
+  tool: "GitHub Issues"            # e.g. GitHub Issues, Jira, Linear
+  instance: ""                     # e.g. yourcompany.atlassian.net (Jira/Linear)
+  sprint_duration: ""              # blank for Kanban
+  branching_strategy: "feature-branch"
+  ticket_prefix: ""                # e.g. PROJ (Jira/Linear); blank for GitHub #N
+
+# -----------------------------------------------------------------------------
+# Quality Standards
+# -----------------------------------------------------------------------------
+quality:
+  test_coverage_target: 80
+
+  required_reviews: 1
+
+  required_checks:
+    - lint
+    - typecheck
+    - test
+    - build
+
+  review_style: "thorough"
+
+  # Fallow static-analysis pass in code review (JS/TS projects only).
+  # Requires the `fallow` CLI on PATH (cargo install fallow-cli, or npx fallow).
+  # Rex runs it changed-scope on JS/TS diffs and skips silently if the CLI is
+  # absent. Default when the key is absent or `true` is ENABLED (it only fires
+  # on JS/TS diffs with the CLI present); set `false` to opt a JS/TS project
+  # out. Shipped `false` here as a conservative template default — flip to
+  # `true` (or delete the line) once you've installed the CLI.
+  # See docs/getting-started.md § "Optional: Fallow static analysis".
+  fallow_review: false
+
+# -----------------------------------------------------------------------------
+# Workflows
+# -----------------------------------------------------------------------------
+workflows:
+  require_prd: true
+  require_technical_design: true
+  require_qa_signoff: true
+  require_security_review: true
+  require_design_review: true
+  use_feature_flags: false
+  use_agent_decision_records: true
+
+# -----------------------------------------------------------------------------
+# Communication
+# -----------------------------------------------------------------------------
+communication:
+  primary: "Slack"
+  documentation: "GitHub Wiki"
+  design: "Figma"

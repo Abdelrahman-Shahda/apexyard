@@ -202,10 +202,32 @@ if [ -z "$PROJECT" ] && [ -n "$OPS_ROOT" ]; then
   esac
 fi
 
+# Three-tier marker lookup, mirroring require-active-ticket.sh (#41 + #513):
+# tier 0 per-worktree (tickets/<project>/<safe-branch>) → tier 1 per-project
+# (tickets/<project>, a FILE) → tier 2 ops fallback (current-ticket).
 MARKER=""
-if [ -n "$PROJECT" ] && [ -f "$MARKER_HOME/.claude/session/tickets/$PROJECT" ]; then
+if [ -n "$PROJECT" ]; then
+  # Tier 0 worktree detection — identical to require-active-ticket.sh: env var,
+  # else LINKED-worktree check via absolute git-dir vs absolute common-dir.
+  WT_BRANCH="${CLAUDE_WORKTREE_BRANCH:-}"
+  if [ -z "$WT_BRANCH" ]; then
+    _fdir=$(dirname "$FILE_PATH")
+    _gd=$(git -C "$_fdir" rev-parse --absolute-git-dir 2>/dev/null)
+    _gcd=$(git -C "$_fdir" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)
+    if [ -n "$_gd" ] && [ "$_gd" != "$_gcd" ]; then
+      WT_BRANCH=$(git -C "$_fdir" branch --show-current 2>/dev/null)
+    fi
+  fi
+  if [ -n "$WT_BRANCH" ]; then
+    SAFE_BRANCH="${WT_BRANCH//\//__}"
+    if [ -f "$MARKER_HOME/.claude/session/tickets/$PROJECT/$SAFE_BRANCH" ]; then
+      MARKER="$MARKER_HOME/.claude/session/tickets/$PROJECT/$SAFE_BRANCH"
+    fi
+  fi
+fi
+if [ -z "$MARKER" ] && [ -n "$PROJECT" ] && [ -f "$MARKER_HOME/.claude/session/tickets/$PROJECT" ]; then
   MARKER="$MARKER_HOME/.claude/session/tickets/$PROJECT"
-elif [ -f "$MARKER_HOME/.claude/session/current-ticket" ]; then
+elif [ -z "$MARKER" ] && [ -f "$MARKER_HOME/.claude/session/current-ticket" ]; then
   MARKER="$MARKER_HOME/.claude/session/current-ticket"
 fi
 

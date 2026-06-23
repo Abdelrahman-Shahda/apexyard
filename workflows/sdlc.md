@@ -41,6 +41,16 @@ Planning --> Design --> Build --> Review --> QA --> Deploy --> Monitor
 - Work scheduled in sprint/cycle
 
 > **Sidebar — when to file a `/spike` instead of a `/feature`.** If you can answer the technical question through reasoning alone (will library X work, does this approach scale, does this UX make sense), feel free to draft the feature directly. If you genuinely don't know, file a `[Spike]` first via `/spike` — a 1-3 day, hypothesis-driven, throw-away-by-default ticket. The spike's output is the answer, not shippable code; once the answer is in, run `/spike-close --promote` (file a fresh `[Feature]` for production-shaped delivery) or `/spike-close --discard` (write a memo to `docs/spike-memos/<slug>.md` so future-us doesn't re-explore the same ground). Spike PRs are exempt from the AgDR + 80% coverage gates; code review (Rex) and the security auditor still apply. See `.claude/rules/workflow-gates.md` § Spike work and `templates/tickets/spike.md`.
+>
+> **Sidebar — the early-work taxonomy: `/spike` vs `/prototype` vs `/walking-skeleton`.** Three early-phase scaffolds across two axes (throwaway-vs-kept, technical-vs-UX):
+>
+> | Skill | Question | Lifecycle |
+> |-------|----------|-----------|
+> | `/spike` | "Will this **technically** work?" | THROWAWAY — `/spike-close` disposition |
+> | `/prototype` | "What should it **look and feel** like?" | THROWAWAY — `/prototype-close` disposition (same AgDR + coverage exemptions as `/spike`) |
+> | `/walking-skeleton` | "Is the **whole architecture** wired end-to-end?" | **KEPT** — thinnest end-to-end slice through every layer; full SDLC, NO exemptions; you grow the product on top of it |
+>
+> Spikes and prototypes are disposable (the *learning* survives, the code doesn't). A walking skeleton is the production spine — minimal but kept. Don't accidentally promote a throwaway into production: that confusion is exactly what this taxonomy exists to prevent.
 
 ---
 
@@ -69,7 +79,9 @@ Skill reference: `.claude/skills/journey/SKILL.md`. Rendering decision rationale
 
 ## Phase 2: Technical Design
 
-> **Primary role**: [Tech Lead](../roles/engineering/tech-lead.md) · **Escalation**: [Head of Engineering](../roles/engineering/head-of-engineering.md) (architecture review) · **Supporting**: [UX Designer](../roles/design/ux-designer.md), [UI Designer](../roles/design/ui-designer.md) (if UI involved)
+> **Primary role**: [Tech Lead](../roles/engineering/tech-lead.md) (authors the design) · **Reviewer**: [Solution Architect](../roles/architecture/solution-architect.md) (Tariq — independently reviews the design before Build; the non-code analog of Rex) · **Escalation**: [Head of Engineering](../roles/engineering/head-of-engineering.md) (enterprise / cross-project / new-tech-stack architecture) · **Supporting**: [UX Designer](../roles/design/ux-designer.md), [UI Designer](../roles/design/ui-designer.md) (if UI involved)
+>
+> The Tech Lead **authors** the technical design; the Solution Architect **reviews** it. Author and reviewer are separate by design. When the design lands as a PR, `require-architecture-review.sh` gates the merge on Tariq's sign-off (Gate 3b) — the design must be sound before the team builds against it.
 
 ### Entry Criteria
 
@@ -82,7 +94,8 @@ Skill reference: `.claude/skills/journey/SKILL.md`. Rendering decision rationale
 | Activity | Owner | Output |
 |----------|-------|--------|
 | Write technical design | Tech Lead / Senior Engineer | Design document |
-| Architecture review | Head of Engineering (if needed) | Approval |
+| Design review (`/design-review`) | Solution Architect (Tariq) | Architecture sign-off or required changes |
+| Architecture escalation | Head of Engineering (if enterprise / cross-project / new tech) | Approval |
 | Break into tasks | Tech Lead | Task list with estimates |
 | Identify risks | Tech Lead | Risk register |
 
@@ -90,7 +103,7 @@ Skill reference: `.claude/skills/journey/SKILL.md`. Rendering decision rationale
 
 ### Exit Criteria
 
-- Technical design approved
+- Technical design approved **by the Solution Architect** (sign-off recorded; Gate 3b satisfied)
 - Tasks created and assigned
 - Risks documented
 
@@ -356,7 +369,7 @@ Every phase has a primary role that activates automatically when the phase start
 | Phase | Primary role | Supporting roles |
 |-------|--------------|------------------|
 | Planning | [Tech Lead](../roles/engineering/tech-lead.md) | [Product Manager](../roles/product/product-manager.md), Engineers |
-| Technical Design | [Tech Lead](../roles/engineering/tech-lead.md) | [Head of Engineering](../roles/engineering/head-of-engineering.md) (escalation), [UX Designer](../roles/design/ux-designer.md) / [UI Designer](../roles/design/ui-designer.md) |
+| Technical Design | [Tech Lead](../roles/engineering/tech-lead.md) (author) | [Solution Architect](../roles/architecture/solution-architect.md) (reviewer, gate), [Head of Engineering](../roles/engineering/head-of-engineering.md) (escalation), [UX Designer](../roles/design/ux-designer.md) / [UI Designer](../roles/design/ui-designer.md) |
 | Build | [Backend Engineer](../roles/engineering/backend-engineer.md) / [Frontend Engineer](../roles/engineering/frontend-engineer.md) | [Tech Lead](../roles/engineering/tech-lead.md) |
 | Code Review | [Tech Lead](../roles/engineering/tech-lead.md) + Rex | [Security Auditor](../roles/security/security-auditor.md) (if auth), [UI Designer](../roles/design/ui-designer.md) (if UI) |
 | QA | [QA Engineer](../roles/engineering/qa-engineer.md) | Engineers (bug fixes) |

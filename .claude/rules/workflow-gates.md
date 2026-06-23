@@ -6,6 +6,7 @@
 | 2 | Tech Design → Build | Design approved, story tickets exist, **AgDR for key decisions** |
 | 3 | Starting code | Ticket exists, branch created, design review if UI work |
 | 3a | Starting a **migration** edit | Active ticket has the `migration` label **and** its body references a migration AgDR at `docs/agdr/AgDR-\d+-.*migration.*\.md`. Enforced by `require-migration-ticket.sh`. Use `/migration` to produce both artefacts in one flow. |
+| 3b | Design → Build (merging a **design-artifact** PR) | A PR carrying a technical design / migration AgDR / feature spec has a Solution Architect (Tariq) sign-off marker at `.claude/session/reviews/<pr>-architecture.approved` with a matching HEAD SHA. Enforced by `require-architecture-review.sh`. Produce the sign-off via `/design-review` (Tariq writes it on APPROVED) or `/approve-architecture`. |
 | 4 | Creating PR | Tests pass, checks pass, **> 80% coverage**, **AgDR linked if decisions made** |
 | 5 | Merging PR | 2 reviews (agent + human), CI green, **commit SHA matches review** |
 | 6 | Ticket → Done | QA verified, signed off |
@@ -73,9 +74,31 @@ Default migration paths:
 
 **How to satisfy**: run `/migration` — it asks for migration type, affected tables, rollback plan, downtime estimate, cross-service consumers, data volume, testing plan, and observability, then creates the labelled issue AND writes the AgDR in one flow.
 
+## Architecture Review Gate (3b) — Solution Architect sign-off before Build
+
+In the ApexYard SDLC a technical design lands as a **committed document** — a technical design doc, a migration AgDR, or a feature spec / PRD — that is merged *before* the team builds against it. The Tech Lead (Hisham) **authors** that design; the Solution Architect (Tariq) **independently reviews** it. The two roles are deliberately split — an author reviewing their own design is the gap this gate closes. Tariq is "Rex for the non-code stuff".
+
+Any merge of a PR whose diff carries a design artifact requires:
+
+1. A Solution Architect sign-off marker at `.claude/session/reviews/<pr>-architecture.approved`
+2. Whose SHA matches the PR's HEAD on GitHub
+
+Default design-artifact patterns (configurable via `.claude/project-config.json` → `design_paths` to REPLACE, `design_paths_exclude` to additively carve out):
+
+- `*technical-design*.md`, `*tech-design*.md` — technical design docs
+- `**/designs/**` — design docs
+- `**/prds/**`, `*prd*.md`, `*feature-spec*.md` — product requirements / feature specs
+- `docs/agdr/*migration*.md` — migration AgDRs
+
+**Enforcement**: `require-architecture-review.sh` fires on PreToolUse for both merge shapes (`gh pr merge` and `gh api .../pulls/<N>/merge`). If the PR carries no design artifact, it's a no-op and the merge proceeds.
+
+**How to satisfy**: run `/design-review <pr>` — the Solution Architect (Tariq) reviews the design against the architecture review lens (quality attributes / NFRs, design patterns, technical debt, AgDR linkage, risk, trade-off analysis, requirements traceability, migration safety) plus adopter handbooks, and writes the marker on an APPROVED verdict. A human architect can instead record it with `/approve-architecture <pr>`. New commits after sign-off invalidate the marker (SHA mismatch) — re-review.
+
 ## Spike work — exempt from a defined subset of these gates
 
 Spike tickets (prefix `[Spike]`, label `spike`) are hypothesis-driven, time-boxed, throw-away exploration. The full production SDLC is the wrong bar — author avoidance is the failure mode. The exemption set below is **surgical, not blanket**:
+
+> **Prototype work shares this exemption.** Prototype tickets (prefix `[Prototype]`, label `prototype`, branch `prototype/...`, PR type `prototype(...)`) are the throw-away **UX/demo** sibling of spikes — same disposable lifecycle, different question ("what should it look/feel like?" vs "will it work?"). The AgDR + coverage exemptions in the table below apply to prototype work identically; substitute `/prototype` for `/spike` and `/prototype-close` for `/spike-close`. The **walking skeleton** (`/walking-skeleton`) is the deliberate opposite — a **kept** thin end-to-end slice held to the FULL SDLC with **no** exemptions. See `.claude/skills/{spike,prototype,walking-skeleton}/SKILL.md`.
 
 | Gate | Production work | Spike work |
 |------|----------------|------------|
@@ -88,13 +111,13 @@ Spike tickets (prefix `[Spike]`, label `spike`) are hypothesis-driven, time-boxe
 | QA Engineer verification | Required (AC verification) | **Required** (Hypothesis verification: did we answer the question?) |
 | Disposition decision before close | N/A | **Required** — operator must declare PROMOTE or DISCARD via `/spike-close` |
 
-**Detection.** AgDR-required hooks detect a spike PR via:
+**Detection.** AgDR-required hooks detect a spike (or prototype) PR via:
 
-1. PR title carries `spike(...)` as the conventional-commit type
-2. Active ticket marker references a `[Spike]`-prefixed ticket
-3. Branch name starts with `spike/`
+1. PR title carries `spike(...)` or `prototype(...)` as the conventional-commit type
+2. Active ticket marker references a `[Spike]`- or `[Prototype]`-prefixed ticket
+3. Branch name starts with `spike/` or `prototype/`
 
-Any one match exempts the gate; otherwise the production rule applies. See `.claude/skills/spike/SKILL.md`, `.claude/skills/spike-close/SKILL.md`, and `docs/agdr/AgDR-0017-spike-skill-schema-and-exemptions.md`.
+Any one match exempts the gate; otherwise the production rule applies. See `.claude/skills/spike/SKILL.md`, `.claude/skills/spike-close/SKILL.md`, `.claude/skills/prototype/SKILL.md`, `.claude/skills/prototype-close/SKILL.md`, and `docs/agdr/AgDR-0017-spike-skill-schema-and-exemptions.md`.
 
 ## QA State is Mandatory
 

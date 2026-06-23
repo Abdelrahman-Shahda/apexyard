@@ -12,6 +12,7 @@
       "CI",
       "Docs",
       "Spike",
+      "Prototype",
       "Investigation"
     ],
     "label_priority_scheme": "P0,P1,P2,P3",
@@ -24,6 +25,7 @@
       "Docs": ["Driver", "Acceptance Criteria"],
       "Bug": ["Given / When / Then", "Repro"],
       "Spike": ["Hypothesis", "Budget", "Kill Criteria", "Disposition"],
+      "Prototype": ["Direction Question", "Fidelity", "Budget", "Disposition"],
       "Investigation": ["Trigger", "Hypothesis being tested", "Method", "Findings", "Conclusion", "Follow-up actions"]
     },
     "skip_marker": "<!-- validate-issue-structure: skip -->",
@@ -54,9 +56,11 @@
       "docs",
       "test",
       "spike",
+      "prototype",
       "ci",
       "build",
-      "perf"
+      "perf",
+      "sync"
     ]
   },
 
@@ -73,7 +77,9 @@
       "build",
       "ci",
       "revert",
-      "spike"
+      "spike",
+      "prototype",
+      "sync"
     ]
   },
 
@@ -91,7 +97,9 @@
       "chore",
       "revert",
       "release",
-      "spike"
+      "spike",
+      "prototype",
+      "sync"
     ],
     "required_sections": [
       "Testing",
@@ -100,6 +108,11 @@
     "skip_marker": "<!-- pr-sections: skip -->",
     "allow_multiple_closes": false,
     "multi_close_skip_marker": "<!-- multi-close: approved -->"
+  },
+
+  "mcp_search": {
+    "_comment": "Config for suggest-mcp-search.sh. gate_mode is OPT-IN (default false): when true AND the apexyard-search MCP server is configured, the hook SOFT-BLOCKS (exit 2) exploratory `grep -r`/`find` over indexed framework/project paths, instructing the agent to use search_code/search_docs first. Read/Glob/Grep stay advisory-only (never blocked — read→edit needs real line numbers). Per-call escape hatch: prefix the command with APEXYARD_MCP_FALLBACK=1 (or export it) to proceed when MCP genuinely can't serve the query (empty index, non-indexable repo, stale index). Default false keeps the hook advisory-only for everyone who doesn't opt in. See AgDR-0070, #651.",
+    "gate_mode": false
   },
 
   "leak_protection": {
