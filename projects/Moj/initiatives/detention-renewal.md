@@ -82,21 +82,36 @@ Topologically sorted; ties broken by **value × risk-inverse**.
 
 11 stories decomposing the day's panel + roll, page-per-story per the Moj Feature Definition Standard. The hard invariant ("save propagates to not-yet-started sessions only") gets its own story (DAY-F). Enabler tasks (block subsets of stories): تهمة lookup with add-on-the-fly de-dup, سبب النظر reference subset, قسم شرطة lookup, درجة قضائية + درجة عضو نيابة lookups, user-scoping (courts → user, divisions → user), and the predecessor domain tests in `moj_judiciary#8`. Pre-Ready gates: pin canonical سبب النظر value list (doc ≠ screens), decide سبب النظر placement (save-time vs search-step), confirm role assignment for the جدول اليوم screen.
 
-### Milestone 2 — Cycle 2: تنفيذ جلسة التجديد
+### Milestone 2 — Cycle 2: تفاصيل الجلسة (تجديد) — session-execution screen
 
-**Status**: filed
-**Filing**: Filed as [#30](https://github.com/apessolutions/moj_judiciary/issues/30)
-**Source stories**: 7 (US-RNW-RUN-A through G) — [Confluence](https://apessolutions.atlassian.net/wiki/spaces/MOJ/pages/1165983745) ⚠ inferred from prototype, needs SME
+**Status**: re-filed (2026-06-23) — supersedes the original prototype-inferred decomposition
+**Filing**: Epic [#185](https://github.com/apessolutions/moj_judiciary/issues/185) · stories RNW-SESS-A…K [#186–#196](https://github.com/apessolutions/moj_judiciary/issues/185) · enablers #197 (قوالب), #198 (PDF)
+**Source stories**: 11 (RNW-SESS-A through K) — [Confluence page 1189806082](https://apessolutions.atlassian.net/wiki/spaces/MOJ/pages/1189806082) (page-per-story child pages = source of truth for ACs)
+**Built net-new on Cycle 1** (CourtSession aggregate + status enum + roll + audit module on `development`). The `feature/GH-181-session-transcript` experiment (#175/#176/#177, merged only to that throwaway branch) is a developer playground — **explicitly out of scope**, not a foundation.
+**Closed as superseded:** old epic #30 + stories #45–#51 (prototype-inferred); old parallel set #181/#178/#179 (the playground's tracking).
 
-- **Success criterion**: A judge drives a renewal session from قيد العرض → قيد النطق بالقرار → تم النطق بالقرار, recording a per-accused قرار (تمديد N days / إخلاء سبيل) with the frozen panel snapshot, transcript, and PDF + edit-log output.
+- **Success criterion**: A court user drives a renewal session لم تبدأ → قيد النطق بالقرار → تم النطق بالقرار, recording نص القرار (required, ASR auto-filled, قوالب-insertable) + optional per-accused result (تمديد+أيام / إخلاء / كفالة+مبلغ / أخرى), with audited transcript edits and a PDF محضر — no auto-scheduling of the next session.
 - **Blocks**: none (within this initiative)
 - **Blocked by**: Milestone 1
-- **Kill criterion**: TBD — likely "Webex/VC integration scope explodes beyond the cycle budget"
+- **Kill criterion**: TBD
 - **Value**: High
-- **Risk**: High
-- **Confidence in time estimate**: Low
+- **Risk**: **Medium** (was High) — the Webex/VC integration unknown is **closed**: per the 2026-06-23 court-IT meeting, mic state is driven by the on-laptop SPS process (render 6 / enable active subset), not a Webex/VC API. The FE↔SPS contract is net-new (AgDR-0030).
+- **Confidence in time estimate**: Medium
 
-7 stories for the virtual-courtroom screen — opened from M1's roll via US-RNW-DAY-K. Entire decomposition was inferred from prototype screenshots; SME confirmation gates every story to Ready. Pre-Ready open questions: (a) **Webex/VC integration** — real API, manual marker, or display-only (the single biggest scope/effort unknown in the whole track); (b) decision shape — per-accused vs per-session, is تمديد duration captured, what are the exact allowed قرار values; (c) transcript — free-text or structured, is it the legal record, editable after إنهاء الجلسة; (d) إضافة حاضر party types + mic-panel impact; (e) سجل التعديلات scope (likely surfaces the shared audit module); (f) confirm "no auto-scheduling of next renewal session" invariant; (g) who-may-run-session authority.
+11 stories for the session-execution screen — opened from M1's roll via RNW-DAY-K. The new Confluence decomposition (Jun 20) resolved most of the prior open questions; remaining gates are narrow.
+
+**Resolved since the prototype-inferred version:**
+
+- **Mic setup** — render **6 slots, enable active subset via SPS mixer type** (4 for renewal). Court-IT decision supersedes Confluence's flat "4 mics" wording (page B needs a product correction). AgDR (to author in tech design, reviewed by Tariq): `docs/agdr/AgDR-0030-renewal-mic-sps-contract.md`.
+- **Decision shape** — نص القرار/الحكم required; per-accused result optional (تمديد+أيام+auto-date / إخلاء / كفالة+مبلغ / أخرى).
+- **Transcript** — editable (text + speaker), audited original-vs-current; reuses the shared audit module (AgDR-0018). No hard delete.
+- **No auto-scheduling** — confirmed (parent-page invariant holds even with تمديد + computed تاريخ التجديد القادم).
+- **حالة الحضور** — not recorded in renewal.
+
+**Still open (settle in tech design, not blockers to build):**
+
+- **Finalization trigger** — Confluence marks "confirm": ASR auto-fills نص القرار but only confirming the end dialog sets تم النطق بالقرار.
+- **Authority** — who-may-run-session (start/end, decision recording, transcript editing) — app-authz decision.
 
 ### Milestone 3 — Cycle 3: قضايا التجديد
 
@@ -162,3 +177,4 @@ Append-only. Each `/plan-initiative` re-run on this slug adds one entry.
 | 2026-06-15 | Initial creation — 3 milestones, scope=per-project (Moj). Sourced from Mariam + Iman's 2026-06-08 Confluence decomposition (21 stories across 3 cycles per the Moj Feature Definition Standard). |
 | 2026-06-15 | Filed milestones M1, M3, M2 as #28, #29, #30 (topo order). Pass 2 wrote Blocks/Blocked-by cross-refs. |
 | 2026-06-15 | Filed 21 story-level tickets as `[Feature]` under each milestone: M1 stories #31–#41 (11), M3 stories #42–#44 (3), M2 stories #45–#51 (7). Each milestone updated with a child-story checklist. Each story body links to its Confluence page (page-per-story remains source-of-truth for ACs). |
+| 2026-06-23 | **M2 re-decomposed** from the new Confluence page 1189806082 (تفاصيل الجلسة / تجديد, 11 stories RNW-SESS-A…K). Closed superseded #30 + #45–#51 (prototype-inferred) and #181/#178/#179 (old parallel set). Preserved merged foundation #175/#176/#177. Filed epic #185 + stories #186–#196 + enablers #197/#198. Mic decision (court-IT 2026-06-23): render 6 / enable via SPS mixer type → Webex/VC risk closed, M2 risk High→Medium. Confluence is now the declared product source-of-truth; GitHub remains the tracker. |

@@ -132,6 +132,7 @@ projects:
       - solution-architect # design-review gate (Tariq) ← from your pull
       - tech-lead
       - backend-engineer
+      - data-engineer # DB/schema design review (Anwar)
       - frontend-engineer
       - security-auditor
       - sre

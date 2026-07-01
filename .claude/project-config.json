@@ -1,6 +1,31 @@
 {
   "_comment": "Framework-repo overrides for project-config.defaults.json. The apexyard framework repo itself dog-foods its own pre-push gate here — see .claude/hooks/pre-push-gate.sh and docs/getting-started.md § 'Terminal push hook'. Managed projects under governance set their own pre_push.commands per their stack.",
 
+  "ticket": {
+    "_comment": "The shipped /migration skill emits '[Migration] <type>: <summary>' titles, but the defaults prefix_whitelist omits 'Migration', so validate-issue-structure.sh blocks every migration ticket. Add it here (arrays are replaced on merge — full list reproduced) and define its required sections (deep-merged into defaults' required_sections). Candidate to upstream into project-config.defaults.json.",
+    "prefix_whitelist": [
+      "Feature",
+      "Bug",
+      "Chore",
+      "Refactor",
+      "Testing",
+      "CI",
+      "Docs",
+      "Spike",
+      "Prototype",
+      "Investigation",
+      "Migration"
+    ],
+    "required_sections": {
+      "Migration": ["Migration", "Rollback Plan", "Testing Plan"]
+    }
+  },
+
+  "git": {
+    "_comment": "This fork is used as a private ops/portfolio repo — 'main' is its daily-work trunk, NOT the framework's release-cut main. Drop 'main' from the protected list so block-main-push.sh / validate-branch-name.sh allow direct portfolio-doc commits here, while keeping master/dev/develop protected. Array REPLACES the default list.",
+    "protected_branches": ["master", "dev", "develop"]
+  },
+
   "pre_push": {
     "_comment": "Commands mirror the locally-runnable CI jobs from .github/workflows/. Each entry guards for a missing tool: a missing tool prints an actionable install message and exits 0 (skip-with-note) so a contributor without the tool is not hard-blocked. Link-check (lychee) is intentionally excluded — it is slow and network-flaky, unsuitable for pre-push. See docs/getting-started.md for the git pre-push hook (core.hooksPath) wiring.",
     "commands": [

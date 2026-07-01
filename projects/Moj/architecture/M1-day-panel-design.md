@@ -119,7 +119,7 @@ Session (AggregateRoot)
 ├── sessionDate: LocalDate            (the day this session sits on)
 ├── caseId: CaseId
 ├── hearingReasonId: HearingReasonId   (سبب النظر — refs HearingReason aggregate)
-├── status: SessionStatus              (PENDING | DECIDING | DECIDED)
+├── status: SessionStatus              (PENDING | AWAITING_VERDICT | FINISHED)
 ├── rollPosition: int                  (sparse-spaced; per-(division, sessionDate) ordering)
 ├── judges: Set<SessionJudge>          (judges snapshot — see below)
 ├── prosecutorRankId: ProsecutionRankId (snapshot — FK to prosecutionrank)
@@ -168,7 +168,7 @@ SessionAccusedLawyer (Entity owned by SessionAccused)
 **Status model**:
 
 ```
-PENDING (قيد العرض) ──► DECIDING (قيد النطق بالقرار) ──► DECIDED (تم النطق بالقرار)
+PENDING (قيد العرض) ──► AWAITING_VERDICT (قيد النطق بالقرار) ──► FINISHED (تم النطق بالقرار)
        ↑
    Cycle 1 creates here. Cycle 2 drives the transitions.
 ```
@@ -381,10 +381,10 @@ sequenceDiagram
     DPS->>SR: save(session)
   end
   DPS->>UI: 200 DivisionPanelResponse + summary{updated: N, frozen: M}
-  Note over DPS,SR: sessions in DECIDING/DECIDED are silently NOT fetched —<br/>the queryByStatus filter is the invariant
+  Note over DPS,SR: sessions in AWAITING_VERDICT/FINISHED are silently NOT fetched —<br/>the queryByStatus filter is the invariant
 ```
 
-The application service explicitly queries `status = PENDING` AND `session_date = today` for propagation — sessions in DECIDING/DECIDED, or on a different day, are never touched. Session's `applyPanelSnapshot()` throws if status ≠ PENDING as a belt-and-braces backstop.
+The application service explicitly queries `status = PENDING` AND `session_date = today` for propagation — sessions in AWAITING_VERDICT/FINISHED, or on a different day, are never touched. Session's `applyPanelSnapshot()` throws if status ≠ PENDING as a belt-and-braces backstop.
 
 ---
 
@@ -698,7 +698,7 @@ All endpoints follow `backend/CLAUDE.md` § "DTOs, validation, and 422 errors": 
 **Query params**:
 
 - `date` (required, `YYYY-MM-DD`) — the day's roll to render
-- `status` (optional) — `PENDING` / `DECIDING` / `DECIDED`
+- `status` (optional) — `PENDING` / `AWAITING_VERDICT` / `FINISHED`
 - `q` (optional) — free-text search; matches case `number`, accused `name`
 - `page`, `limit` — standard pagination (1-based, default 20, max 100 per `application.properties`)
 - Default sort: `rollPosition ASC` (server-controlled)
@@ -791,7 +791,7 @@ Notes:
 **Errors**:
 
 - `404` `SESSION_NOT_FOUND`
-- `409` `SESSION_NOT_PENDING_DELETE` — already DECIDING/DECIDED
+- `409` `SESSION_NOT_PENDING_DELETE` — already AWAITING_VERDICT/FINISHED
 
 ---
 
@@ -959,7 +959,7 @@ Inline prosecutor snapshot (prosecutor has no id — rank + name only).
 | `session_date` | `date` | NOT NULL | The day this session sits on (== day's roll it belongs to) |
 | `case_id` | `uniqueidentifier` | NOT NULL | FK `fk_sessions_case_id` → `cases(id)` |
 | `hearing_reason_id` | `uniqueidentifier` | NOT NULL | FK `fk_sessions_hearing_reason_id` → `hearing_reasons(id)` (سبب النظر) |
-| `status` | `nvarchar(30)` | NOT NULL | Enum: `PENDING` / `DECIDING` / `DECIDED` |
+| `status` | `nvarchar(30)` | NOT NULL | Enum: `PENDING` / `AWAITING_VERDICT` / `FINISHED` |
 | `roll_position` | `int` | NOT NULL | Sparse spacing (100, 200, 300…) per Decision 4; scoped to (division_id, session_date) |
 | `prosecutor_rank_id` | `uniqueidentifier` | NOT NULL | FK `fk_sessions_prosecutor_rank_id` → `prosecution_ranks(id)`. **Snapshot — frozen at commit.** |
 | `prosecutor_name` | `nvarchar(255)` | NOT NULL | Free-text prosecutor name. **Snapshot — frozen at commit.** |
@@ -1069,7 +1069,7 @@ Sequenced top-down so reference data exists before the slices that depend on it.
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|------------|--------|------------|
-| Propagation correctness — sessions in DECIDING get touched in a race | Med | **High** (legal record corruption) | Belt-and-braces: app service filters by `division_id + session_date + status=PENDING` query AND domain method throws on non-PENDING. Cross-slice integration test exercises the race. |
+| Propagation correctness — sessions in AWAITING_VERDICT get touched in a race | Med | **High** (legal record corruption) | Belt-and-braces: app service filters by `division_id + session_date + status=PENDING` query AND domain method throws on non-PENDING. Cross-slice integration test exercises the race. |
 | Delegated-judge UX surprise on reload | Low | Low | Decision 3 settled: persisted on DivisionPanel (not on Division). Survives reloads. |
 | Roll re-numbering exhausts gap budget | Low | Low | Sparse spacing (100s) plus a periodic re-numbering job when consecutive gaps drop below threshold. |
 | Stale composition on day rollover | Low | Med | DivisionPanel.currentDate freshness check — endpoint 1 overwrites from `Division.formation` defaults if `currentDate < requestedDate`. |
@@ -1096,7 +1096,7 @@ Sequenced top-down so reference data exists before the slices that depend on it.
 | Application service (in-memory fakes) | Cross-aggregate validations, FieldValidationException paths | Per-slice |
 | Persistence (`@SpringBootTest` + Testcontainers MSSQL) | `session_participants` snapshot persistence, propagation query covering index, soft-delete cascade, day-rollover `freshenForDate` overwrite | Per `backend/CLAUDE.md` § Testing gates |
 | ModularityTests | Modulith boundary verification — `case`, `session`, `divisionpanel`, `hearingreason`, `casetype` slices respect `shared/` rules | Plain JUnit, no Spring |
-| Cross-slice end-to-end | DAY-F save → propagation correctness on mixed PENDING/DECIDING sessions | Critical |
+| Cross-slice end-to-end | DAY-F save → propagation correctness on mixed PENDING/AWAITING_VERDICT sessions | Critical |
 
 Coverage target: ≥80% on new domain code (per workflow-gates rule 4).
 
