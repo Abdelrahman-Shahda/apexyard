@@ -1,32 +1,42 @@
 # Portfolio repo links — these repos may be private. Lychee runs
+
 # unauthenticated so private repos always 404.
-https://github.com/me2resh/apexyard.*
-https://github.com/me2resh/curios-dog.*
-https://github.com/me2resh/SharpPick.*
-<<<<<<< HEAD
+
+https://github.com/me2resh/apexyard._
+https://github.com/me2resh/curios-dog._
+https://github.com/me2resh/SharpPick.\*
+
 # This fork's private managed-project repos (Moj, dfn, booking-system) — private,
+
 # so unauthenticated lychee always 404s on their repo/issue URLs in projects/ docs.
-https://github.com/apessolutions/.*
-=======
->>>>>>> upstream/main
+
+https://github.com/apessolutions/.\*
 
 # Medium author URLs return 403 to bot user-agents (transient anti-scraping
+
 # protection). The link works in browsers; lychee-action's user-agent gets
+
 # rejected. Cited as a Source in docs/spikes/claude-model-tier-routing.md.
-https://medium\.com/@sathishkraju/.*
+
+https://medium\.com/@sathishkraju/.\*
 
 # Apex domains for the framework's own marketing site — Netlify is serving
-# its default *.netlify.app wildcard cert instead of a Let's Encrypt cert
+
+# its default \*.netlify.app wildcard cert instead of a Let's Encrypt cert
+
 # matching the apex domain, so lychee's TLS verification fails. Pinned
+
 # here so framework PRs aren't blocked on adopter-side DNS / cert config.
+
 # Fix is in Netlify dashboard (Site → Domain management → HTTPS →
+
 # Provision certificate), separate concern from any framework diff.
-https://me2resh\.com.*
-https://yard\.apexscript\.com.*
-<<<<<<< HEAD
+
+https://me2resh\.com._
+https://yard\.apexscript\.com._
 
 # v3 removed the site/ marketing dir; stale relative links to it (e.g. in
+
 # docs/agdr/AgDR-0018) are dead by design on this fork.
+
 site/index\.html
-=======
->>>>>>> upstream/main
