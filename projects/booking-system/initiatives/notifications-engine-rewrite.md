@@ -217,6 +217,7 @@ Rolled up from per-milestone `TBD` answers + design open questions.
 From the rev-3 re-reviews (Tariq + Hakim, 2026-06-28). All non-blocking; the gates passed. Carry into the named milestone.
 
 **Settle in M1 (walking skeleton):**
+
 - **Fail-closed predicates** — absent context key ⇒ predicate evaluates FALSE (never accidentally routes). [Hakim]
 - **Deny-by-default predicate parser** — unknown predicate kind ⇒ reject, not ignore; scalar-equality comparison only. [Hakim]
 - **Feed-record fallback render** (NEW-2 "render from context") must route through the same HTML-escape as IN_APP — same stored-XSS sink. [Hakim]
@@ -225,11 +226,13 @@ From the rev-3 re-reviews (Tariq + Hakim, 2026-06-28). All non-blocking; the gat
 - **A3 — strategy invariant**: `strategy` is per-event but stored per-rule-row → config-time invariant "all rules of (scope,event) share one strategy" (or hoist to parent). [Tariq]
 
 **Settle in M4/M5 (governance + config surfaces):**
+
 - **Server-derived predicate keys only** — mark routing-eligible vs render-only keys in the catalog so a user can't influence `context.source` to force/avoid a paid transport (cost amplification / transport steering). [Hakim NEW MEDIUM]
 - **FIRST_MATCH confidentiality** — rule ordering is a confidentiality decision (PUSH→SMS downgrade); document per-event whether downgrade is acceptable. [Hakim]
 - **PII-at-rest retention (GDPR)** — concrete erasure/retention policy over persisted `rendered_body`/`payload`/DLQ; right-to-be-forgotten obligation. File a dedicated ticket. [Hakim PARTIAL]
 
 **Doc hygiene (non-urgent):**
+
 - **A4** — add a "static-set aspect superseded by AgDR-0020" forward banner to AgDR-0015 (supersession already captured in AgDR-0020 + the Ownership Model). [Tariq]
 
 ## Anti-scope

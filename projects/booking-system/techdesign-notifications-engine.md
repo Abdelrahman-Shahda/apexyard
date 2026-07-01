@@ -65,6 +65,7 @@ Three actors, **non-overlapping** controls.
 | **Recipient admin** | Per-event on/off for themselves (optional events only; opt-out default) | `notification_preference` |
 
 > Ratified as AgDRs in the booking-system repo (`docs/agdr/`):
+>
 > - **AgDR-0014**: preference granularity = **per-event**, default = **opt-out (absent = on)**.
 > - **AgDR-0015**: transport = platform routing `∩` tenant enablement; **never** a recipient/tenant choice.
 > - **AgDR-0016**: super-admin transport disable is **irreversible**; mandatory events guaranteed an **always-on in-app floor**.
@@ -268,6 +269,7 @@ New + altered tables (all migrations via `/migration` — gate 3a):
 > **N2 resolution:** `DeliveredNotification` is the existing `notification` table **altered in place** (add columns), NOT a rename — preserving the existing in-app feed rows and the indexes from migration 1771876579632.
 
 ### Key access patterns
+
 - Routing: `event_transport_routing` by `(tenant_id OR global)` + event → index `(event, tenant_id)`.
 - Preference: `(recipient_id, recipient_type, event)` → unique composite index.
 - Render: `(event, transport, locale)` → unique composite index; locale fallback per decision table.
