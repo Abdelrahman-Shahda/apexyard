@@ -1,7 +1,7 @@
 ---
 name: request-apexyard-feature
 description: Request a new feature or enhancement for the apexyard FRAMEWORK itself — files a structured issue upstream to me2resh/apexyard. Distinct from /feature, which files into your own project.
-argument-hint: "<short description of the framework feature>"
+argument-hint: '<short description of the framework feature>'
 allowed-tools: Bash, Read, Write
 ---
 
@@ -13,9 +13,9 @@ for a new skill, a new hook, a rule improvement, a better workflow, etc.
 
 This is the framework-feedback sibling of `/feature`. The difference is the target:
 
-| Skill | Requests a feature for… | Files to… |
-|-------|-------------------------|-----------|
-| `/feature` | your managed project | your project's own GitHub repo |
+| Skill                           | Requests a feature for…                                                  | Files to…                         |
+| ------------------------------- | ------------------------------------------------------------------------ | --------------------------------- |
+| `/feature`                      | your managed project                                                     | your project's own GitHub repo    |
 | **`/request-apexyard-feature`** | the apexyard **framework** (skills / hooks / rules / agents / workflows) | **`me2resh/apexyard`** (upstream) |
 
 > **Leak protection (mandatory).** This skill writes to a PUBLIC framework repo.
@@ -38,7 +38,17 @@ This is the framework-feedback sibling of `/feature`. The difference is the targ
 ### 0. Write the active-issue-skill marker (REQUIRED — me2resh/apexyard#268)
 
 ```bash
-ops_root="$(r=$PWD;while [ ! -f \"$r/onboarding.yaml\" ] && [ \"$r\" != / ];do r=${r%/*};done;echo $r)"
+# Resolve the ops-fork root the SAME way the hooks do (_lib-ops-root.sh):
+# anchor on the .apexyard-fork marker (split-portfolio v2 — onboarding.yaml
+# lives in the sibling portfolio repo, NOT the ops fork), falling back to the
+# onboarding.yaml + apexyard.projects.yaml pair (single-fork v1).
+ops_root="$PWD"; r="$PWD"
+while [ "$r" != / ]; do
+  if [ -f "$r/.apexyard-fork" ] || { [ -f "$r/onboarding.yaml" ] && [ -f "$r/apexyard.projects.yaml" ]; }; then
+    ops_root="$r"; break
+  fi
+  r=${r%/*}
+done
 mkdir -p "$ops_root/.claude/session"
 echo "request-apexyard-feature" > "$ops_root/.claude/session/active-issue-skill"
 ```
@@ -91,7 +101,7 @@ fi
 
 Ask conversationally — do NOT batch. Wait for each answer.
 
-**a) The problem / friction** — what's awkward or missing in the framework today? (the *why*, not the solution)
+**a) The problem / friction** — what's awkward or missing in the framework today? (the _why_, not the solution)
 
 **b) Proposed behaviour** — what should the framework do? (new skill / hook / rule / agent / workflow change — name it concretely)
 
@@ -177,4 +187,4 @@ Filed upstream: <UPSTREAM>#{number} — {title}
 
 ---
 
-*Part of [ApexYard](https://github.com/me2resh/apexyard) — multi-project SDLC framework for Claude Code · MIT.*
+_Part of [ApexYard](https://github.com/me2resh/apexyard) — multi-project SDLC framework for Claude Code · MIT._

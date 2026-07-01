@@ -1,7 +1,7 @@
 ---
 name: walking-skeleton
 description: Scaffold a [Feature]-class ticket for the thinnest end-to-end slice — one trivial path wired through every architectural layer. KEPT and grown; full SDLC (NOT exempt like /spike).
-argument-hint: "<feature or service the skeleton proves>"
+argument-hint: '<feature or service the skeleton proves>'
 allowed-tools: Bash, Read, Write
 ---
 
@@ -11,13 +11,13 @@ Creates a structured GitHub Issue for a **walking skeleton** — the thinnest po
 
 > **The taxonomy — three skills, two axes (throwaway vs kept, technical vs UX).**
 >
-> | Skill | Question it answers | Lifecycle |
-> |-------|---------------------|-----------|
-> | `/spike` | "Will this **technically** work?" | **THROWAWAY** — discarded after the answer is in (`/spike-close`). |
-> | `/prototype` | "What should this **look and feel** like?" | **THROWAWAY** — discarded after the direction is chosen (`/prototype-close`). |
-> | **`/walking-skeleton`** | "Is the **whole architecture** wired and deployable end-to-end?" | **KEPT** — the production spine you flesh out. Full SDLC. |
+> | Skill                   | Question it answers                                              | Lifecycle                                                                     |
+> | ----------------------- | ---------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+> | `/spike`                | "Will this **technically** work?"                                | **THROWAWAY** — discarded after the answer is in (`/spike-close`).            |
+> | `/prototype`            | "What should this **look and feel** like?"                       | **THROWAWAY** — discarded after the direction is chosen (`/prototype-close`). |
+> | **`/walking-skeleton`** | "Is the **whole architecture** wired and deployable end-to-end?" | **KEPT** — the production spine you flesh out. Full SDLC.                     |
 >
-> The walking skeleton is the **opposite** of a spike/prototype: minimal but **production-shaped and kept**. This distinction prevents the common, expensive confusion where a throwaway exploration gets accidentally promoted into production. A walking skeleton is held to the full bar from day one *because* it stays — it is **NOT** exempt from the AgDR + coverage gates the way `/spike` and `/prototype` are. See `workflows/sdlc.md` § Phase 1 and `.claude/rules/workflow-gates.md`.
+> The walking skeleton is the **opposite** of a spike/prototype: minimal but **production-shaped and kept**. This distinction prevents the common, expensive confusion where a throwaway exploration gets accidentally promoted into production. A walking skeleton is held to the full bar from day one _because_ it stays — it is **NOT** exempt from the AgDR + coverage gates the way `/spike` and `/prototype` are. See `workflows/sdlc.md` § Phase 1 and `.claude/rules/workflow-gates.md`.
 
 ## Path resolution
 
@@ -46,7 +46,17 @@ Defaults match today's single-fork layout (`./apexyard.projects.yaml`, `./projec
 Before any `gh issue create` (or other tracker CLI), write this skill's name to the active-issue-skill marker so `require-skill-for-issue-create.sh` lets the command through. At skill entry:
 
 ```bash
-ops_root="$(r=$PWD;while [ ! -f \"$r/onboarding.yaml\" ] && [ \"$r\" != / ];do r=${r%/*};done;echo $r)"
+# Resolve the ops-fork root the SAME way the hooks do (_lib-ops-root.sh):
+# anchor on the .apexyard-fork marker (split-portfolio v2 — onboarding.yaml
+# lives in the sibling portfolio repo, NOT the ops fork), falling back to the
+# onboarding.yaml + apexyard.projects.yaml pair (single-fork v1).
+ops_root="$PWD"; r="$PWD"
+while [ "$r" != / ]; do
+  if [ -f "$r/.apexyard-fork" ] || { [ -f "$r/onboarding.yaml" ] && [ -f "$r/apexyard.projects.yaml" ]; }; then
+    ops_root="$r"; break
+  fi
+  r=${r%/*}
+done
 mkdir -p "$ops_root/.claude/session"
 echo "walking-skeleton" > "$ops_root/.claude/session/active-issue-skill"
 ```
@@ -283,20 +293,20 @@ throwaway.
 
 ## Where this sits in the SDLC
 
-A walking skeleton is **Build-phase work like any feature** — it just happens to be the *first* feature, and its purpose is to prove the architecture rather than deliver user value. It carries no exemptions:
+A walking skeleton is **Build-phase work like any feature** — it just happens to be the _first_ feature, and its purpose is to prove the architecture rather than deliver user value. It carries no exemptions:
 
-| Gate | Walking-skeleton work |
-|------|------------------------|
-| Pre-Build (ticket, ACs) | Required — the skeleton ticket carries the wiring ACs |
-| AgDR for technical decisions | Required — the skeleton usually MAKES the architecture decisions (it's the first place they're committed); record them with `/decide` |
-| Test coverage > 80% | Required — KEPT code; the slice's domain logic is tested |
-| Code Reviewer agent (Rex) | Required |
-| Security Auditor (auth/crypto/secrets diff) | Required |
-| Glossary in PR body | Required |
-| QA Engineer verification | Required (AC verification: every layer wired, runs/deploys) |
+| Gate                                        | Walking-skeleton work                                                                                                                 |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Pre-Build (ticket, ACs)                     | Required — the skeleton ticket carries the wiring ACs                                                                                 |
+| AgDR for technical decisions                | Required — the skeleton usually MAKES the architecture decisions (it's the first place they're committed); record them with `/decide` |
+| Test coverage > 80%                         | Required — KEPT code; the slice's domain logic is tested                                                                              |
+| Code Reviewer agent (Rex)                   | Required                                                                                                                              |
+| Security Auditor (auth/crypto/secrets diff) | Required                                                                                                                              |
+| Glossary in PR body                         | Required                                                                                                                              |
+| QA Engineer verification                    | Required (AC verification: every layer wired, runs/deploys)                                                                           |
 
 See `.claude/rules/workflow-gates.md`, `.claude/skills/spike/SKILL.md` (the throwaway technical sibling), and `.claude/skills/prototype/SKILL.md` (the throwaway UX sibling).
 
 ---
 
-*Part of [ApexYard](https://github.com/me2resh/apexyard) — multi-project SDLC framework for Claude Code · MIT.*
+_Part of [ApexYard](https://github.com/me2resh/apexyard) — multi-project SDLC framework for Claude Code · MIT._

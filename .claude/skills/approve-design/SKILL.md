@@ -2,7 +2,7 @@
 name: approve-design
 description: Record per-PR design-review approval (UI merge gate). ONLY on an explicit per-PR designer "approved".
 disable-model-invocation: false
-argument-hint: "<pr-number>"
+argument-hint: '<pr-number>'
 effort: low
 ---
 
@@ -24,7 +24,7 @@ The valid invocation triggers look like this:
 
 **Invalid triggers** (do NOT run this skill):
 
-- "looks good" / "nice" / "approved" — **when said about a Figma mockup, a design spec, a screenshot, or any artifact that is not a specific PR's diff**. Design review means reviewing the *actual code changes in a PR*, not a mockup. A mockup approval and a PR approval are different moments.
+- "looks good" / "nice" / "approved" — **when said about a Figma mockup, a design spec, a screenshot, or any artifact that is not a specific PR's diff**. Design review means reviewing the _actual code changes in a PR_, not a mockup. A mockup approval and a PR approval are different moments.
 - "the design is fine" — **when said in a planning context** ("let's go with this design approach") rather than a PR-review context ("I've looked at the PR diff and the implementation matches the design"). The skill is for the latter.
 - "go" / "continue" / "ship it" — when these are umbrella responses to a multi-step plan. Same rule as `/approve-merge`.
 - Your own inference that "the designer probably approves because they liked the mockup earlier." NO. Mockup approval ≠ implementation approval. Stop and ask.
@@ -33,29 +33,32 @@ The valid invocation triggers look like this:
 
 ## Process
 
-### 1. Parse the PR number
+### 1. Parse the PR number — and the repo
 
-Extract from `$ARGUMENTS`. If no argument is given, try to infer from:
+Extract the PR number from `$ARGUMENTS`. If no argument is given, try to infer from:
 
 - The current branch's open PR via `gh pr view --json number --jq '.number'`
 - The user's most recent message, if it named a PR explicitly
 
 If the PR number is ambiguous, STOP and ask.
 
+**Also resolve the repo (`REPO`).** Accept the fully-qualified `owner/repo#N` form, or an explicit `owner/repo` second token. In split-portfolio v2 the PR lives in a _sibling_ repo, so a bare `gh pr view <pr>` resolved against the ops-fork cwd hits the WRONG repo — the marker would then be written under the ops-fork qualifier and the `require-design-review-for-ui.sh` gate (which keys on the PR's real repo, derived from the merge command's cd-target, me2resh/apexyard#687) would never find it → false-block. Pass `--repo "$REPO"` to **every** `gh pr view` call below when `REPO` is known. **Fail loud:** if only a bare number was given and `gh pr view <pr>` cannot resolve the PR from the current cwd, STOP and ask for the `owner/repo#N` form — never write the marker under a guessed qualifier.
+
 ### 2. Sanity-check the user's intent
 
 Before writing the marker, re-read the user's most recent message. Ask yourself:
 
 - Did the user/designer explicitly name this PR, or can I point at a direct "PR #X design approved?" question from me that they are responding to?
-- Did the designer review the *PR diff* (code changes), or just a mockup / screenshot / Figma link?
+- Did the designer review the _PR diff_ (code changes), or just a mockup / screenshot / Figma link?
 - Is the approval for the design aspects of this specific PR, or for a general design direction?
 
 If any of these are unclear — **STOP**. Reply with a per-PR explicit question:
+
 > "PR #X touches UI files (.tsx/.css/etc). Has the design review been completed on the actual PR diff — approved?"
 
 ### 3. Verify the PR state
 
-Run `gh pr view <pr> --json state,isDraft,mergeable`. Sanity checks:
+Run `gh pr view <pr> ${REPO:+--repo "$REPO"} --json state,isDraft,mergeable`. Sanity checks:
 
 - `state` must be `OPEN`.
 - Refuse if `MERGED`, `CLOSED`, or `DRAFT`.
@@ -77,7 +80,10 @@ done
 MARKER_HOME="${OPS_ROOT:-$REPO_ROOT}"
 # shellcheck source=/dev/null
 . "$MARKER_HOME/.claude/hooks/_lib-review-markers.sh"
-PR_REPO=$(gh pr view <pr> --json headRepository --jq '.headRepository.nameWithOwner' 2>/dev/null)
+# Prefer the repo resolved in step 1 (the base repo the PR lives in — the slug
+# the gate derives from the merge cd-target, #687). Fall back to headRepository
+# only when REPO is unknown (single-fork / same-repo case).
+PR_REPO="${REPO:-$(gh pr view <pr> --json headRepository --jq '.headRepository.nameWithOwner' 2>/dev/null)}"
 REX=$(review_marker_path "$PR_REPO" <pr> rex "$MARKER_HOME")
 [ -f "$REX" ] && [ "$(tr -d '[:space:]' < "$REX")" = "$(git rev-parse HEAD)" ]
 ```
@@ -120,7 +126,7 @@ Design approval recorded for PR #<pr> at <sha>. The design-review merge gate wil
 - The design marker is gitignored (`.claude/session/` is in `.gitignore`). It's session state, not code.
 - Re-running `/approve-design <pr>` is idempotent — it overwrites the marker with the current HEAD.
 - New commits after the design approval invalidate the marker: the hook will refuse to merge because the SHA no longer matches HEAD. This is intentional — a new commit might change the UI. Re-request design review.
-- This skill does NOT invoke the UI Designer role. It records the approval *after* the designer has reviewed. The review itself happens through whatever process the team uses (role activation, human review, Figma comparison, etc.).
+- This skill does NOT invoke the UI Designer role. It records the approval _after_ the designer has reviewed. The review itself happens through whatever process the team uses (role activation, human review, Figma comparison, etc.).
 
 ## Anti-pattern
 
@@ -143,9 +149,9 @@ Two distinct moments. One is mockup approval (design phase). The other is implem
 
 ## Relationship to other approval skills
 
-| Skill | Marker (repo-qualified, see AgDR-0060) | Gate hook | Who invokes |
-|-------|----------------------------------------|-----------|-------------|
-| `/approve-merge` | `<owner>__<repo>__<pr>-ceo.approved` | `block-unreviewed-merge.sh` | On explicit CEO per-PR merge nod |
+| Skill                 | Marker (repo-qualified, see AgDR-0060)  | Gate hook                         | Who invokes                            |
+| --------------------- | --------------------------------------- | --------------------------------- | -------------------------------------- |
+| `/approve-merge`      | `<owner>__<repo>__<pr>-ceo.approved`    | `block-unreviewed-merge.sh`       | On explicit CEO per-PR merge nod       |
 | **`/approve-design`** | `<owner>__<repo>__<pr>-design.approved` | `require-design-review-for-ui.sh` | On explicit designer per-PR design nod |
 
 Both skills follow the same pattern: verify PR state → verify Rex marker → write marker at ops fork root → confirm → stop. Both refuse to write on a stale Rex base. Both are invalidated by new commits. Neither runs `gh pr merge`.
@@ -158,4 +164,4 @@ The merge flow for a UI PR requires **three** markers before the merge-gate hook
 
 ---
 
-*Part of [ApexYard](https://github.com/me2resh/apexyard) — multi-project SDLC framework for Claude Code · MIT.*
+_Part of [ApexYard](https://github.com/me2resh/apexyard) — multi-project SDLC framework for Claude Code · MIT._

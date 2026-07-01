@@ -8,7 +8,7 @@ name: Scorecard supply-chain security
 on:
   branch_protection_rule:
   schedule:
-    - cron: '19 4 * * 1'   # weekly, Monday 04:19 UTC
+    - cron: '19 4 * * 1' # weekly, Monday 04:19 UTC
   push:
     branches: [main]
 
@@ -22,13 +22,13 @@ jobs:
     name: Scorecard analysis
     runs-on: ubuntu-latest
     permissions:
-      security-events: write   # upload results to code-scanning
-      id-token: write          # publish results to the OSSF API (badge)
+      security-events: write # upload results to code-scanning
+      id-token: write # publish results to the OSSF API (badge)
       contents: read
 
     steps:
       - name: Checkout
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
 
@@ -37,7 +37,7 @@ jobs:
         with:
           results_file: results.sarif
           results_format: sarif
-          publish_results: false  # disabled: publish step failed the run (#679); SARIF still uploads to code-scanning
+          publish_results: false # disabled: publish step failed the run (#679); SARIF still uploads to code-scanning
 
       - name: Upload artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7

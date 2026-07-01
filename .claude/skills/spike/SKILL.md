@@ -1,7 +1,7 @@
 ---
 name: spike
 description: Create a hypothesis-driven, time-boxed spike ticket (Hypothesis/Budget/Kill Criteria/Disposition). Exempt from AgDR + coverage gates.
-argument-hint: "<short title of the spike>"
+argument-hint: '<short title of the spike>'
 allowed-tools: Bash, Read, Write
 ---
 
@@ -38,7 +38,17 @@ Defaults match today's single-fork layout (`./apexyard.projects.yaml`, `./projec
 Before any `gh issue create` (or other tracker CLI), write this skill's name to the active-issue-skill marker so `require-skill-for-issue-create.sh` lets the command through. At skill entry:
 
 ```bash
-ops_root="$(r=$PWD;while [ ! -f \"$r/onboarding.yaml\" ] && [ \"$r\" != / ];do r=${r%/*};done;echo $r)"
+# Resolve the ops-fork root the SAME way the hooks do (_lib-ops-root.sh):
+# anchor on the .apexyard-fork marker (split-portfolio v2 — onboarding.yaml
+# lives in the sibling portfolio repo, NOT the ops fork), falling back to the
+# onboarding.yaml + apexyard.projects.yaml pair (single-fork v1).
+ops_root="$PWD"; r="$PWD"
+while [ "$r" != / ]; do
+  if [ -f "$r/.apexyard-fork" ] || { [ -f "$r/onboarding.yaml" ] && [ -f "$r/apexyard.projects.yaml" ]; }; then
+    ops_root="$r"; break
+  fi
+  r=${r%/*}
+done
 mkdir -p "$ops_root/.claude/session"
 echo "spike" > "$ops_root/.claude/session/active-issue-skill"
 ```
@@ -248,19 +258,19 @@ record of what was learned.
 
 A spike PR is exempt from the production SDLC subset listed below; everything else still applies. The exemptions are mechanical (hooks detect `[Spike]` prefix or `spike` label and skip), not advisory.
 
-| Gate | Production work | Spike work |
-|------|----------------|------------|
-| Pre-Build (parent epic, story tickets, ACs, design review) | Required | Skipped — the spike ticket IS the unit |
-| AgDR for technical decisions (`require-agdr-for-arch-pr.sh`, `require-agdr-for-arch-changes.sh`) | Required | Skipped — ship a memo on `/spike-close --discard` instead |
-| Test coverage > 80% | Required | Skipped — coverage is irrelevant for throw-away code |
-| Code Reviewer agent (Rex) | Required on every PR | Required — even throw-away code gets a sanity check |
-| Security Auditor (auth/crypto/secrets diff) | Required | Required — security gates fire regardless of intent |
-| Glossary in PR body | Required | Required — spike PRs explain WHAT WAS LEARNED, which is the artefact |
-| QA Engineer verification | Required (AC verification) | Required (Hypothesis verification: did we answer the question?) |
-| Disposition decision before close | N/A | Required — operator must declare PROMOTE or DISCARD via `/spike-close` |
+| Gate                                                                                             | Production work            | Spike work                                                             |
+| ------------------------------------------------------------------------------------------------ | -------------------------- | ---------------------------------------------------------------------- |
+| Pre-Build (parent epic, story tickets, ACs, design review)                                       | Required                   | Skipped — the spike ticket IS the unit                                 |
+| AgDR for technical decisions (`require-agdr-for-arch-pr.sh`, `require-agdr-for-arch-changes.sh`) | Required                   | Skipped — ship a memo on `/spike-close --discard` instead              |
+| Test coverage > 80%                                                                              | Required                   | Skipped — coverage is irrelevant for throw-away code                   |
+| Code Reviewer agent (Rex)                                                                        | Required on every PR       | Required — even throw-away code gets a sanity check                    |
+| Security Auditor (auth/crypto/secrets diff)                                                      | Required                   | Required — security gates fire regardless of intent                    |
+| Glossary in PR body                                                                              | Required                   | Required — spike PRs explain WHAT WAS LEARNED, which is the artefact   |
+| QA Engineer verification                                                                         | Required (AC verification) | Required (Hypothesis verification: did we answer the question?)        |
+| Disposition decision before close                                                                | N/A                        | Required — operator must declare PROMOTE or DISCARD via `/spike-close` |
 
 See `.claude/rules/workflow-gates.md` § Spike work for the rule statement, and AgDR-NNNN-spike-skill-schema-and-exemptions.md for the rationale.
 
 ---
 
-*Part of [ApexYard](https://github.com/me2resh/apexyard) — multi-project SDLC framework for Claude Code · MIT.*
+_Part of [ApexYard](https://github.com/me2resh/apexyard) — multi-project SDLC framework for Claude Code · MIT._

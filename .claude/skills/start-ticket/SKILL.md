@@ -2,7 +2,7 @@
 name: start-ticket
 description: Declare an active ticket so the ticket-first hook lets code edits through. Accepts `<N>` or `<owner>/<repo>#<N>`.
 disable-model-invocation: false
-argument-hint: "<issue-number> | <owner/repo>#<number>"
+argument-hint: '<issue-number> | <owner/repo>#<number>'
 effort: low
 ---
 
@@ -12,11 +12,11 @@ Writes a session marker so the `require-active-ticket.sh` PreToolUse hook permit
 
 Marker layout (apexyard#41 + #513):
 
-| Path | When the hook uses it |
-|------|----------------------|
-| `<ops_root>/.claude/session/tickets/<project>/<safe-branch>` | **Tier 0 (#513).** Edit is under `<ops_root>/workspace/<project>/` AND the file's repo is on a git-worktree branch (or `CLAUDE_WORKTREE_BRANCH` is set). Lets parallel agents on the *same* project hold independent tickets. `safe-branch` = branch with `/`→`__`. |
-| `<ops_root>/.claude/session/tickets/<project>` | **Tier 1.** Edit is under `<ops_root>/workspace/<project>/` AND this per-project marker exists (as a FILE). Single-agent default. |
-| `<ops_root>/.claude/session/current-ticket` | **Tier 2.** Fallback. Checked if neither above matched. Also the marker for ops-repo framework edits (no `workspace/<name>/` prefix). |
+| Path                                                         | When the hook uses it                                                                                                                                                                                                                                               |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `<ops_root>/.claude/session/tickets/<project>/<safe-branch>` | **Tier 0 (#513).** Edit is under `<ops_root>/workspace/<project>/` AND the file's repo is on a git-worktree branch (or `CLAUDE_WORKTREE_BRANCH` is set). Lets parallel agents on the _same_ project hold independent tickets. `safe-branch` = branch with `/`→`__`. |
+| `<ops_root>/.claude/session/tickets/<project>`               | **Tier 1.** Edit is under `<ops_root>/workspace/<project>/` AND this per-project marker exists (as a FILE). Single-agent default.                                                                                                                                   |
+| `<ops_root>/.claude/session/current-ticket`                  | **Tier 2.** Fallback. Checked if neither above matched. Also the marker for ops-repo framework edits (no `workspace/<name>/` prefix).                                                                                                                               |
 
 All markers live in the ops fork (gitignored). No more `.claude/session/` inside each managed-project clone. `tickets/<project>` is a FILE (tier 1) or a DIRECTORY holding `<safe-branch>` markers (tier 0) — the hook's `-f` tests keep the two from colliding.
 
@@ -188,7 +188,22 @@ suggested_branch=<branch>
 started_at=<ISO-8601>
 ```
 
-### 6. Confirm to the User
+### 6. Move the board card to "In progress" (opt-in)
+
+After writing the marker, call `board_move_card` so the GitHub Projects board
+reflects the ticket being picked up. This is a no-op unless `enable_auto_moves`
+is `true` in the fork's `github_projects` config.
+
+```bash
+source "$(git rev-parse --show-toplevel)/.claude/hooks/_lib-project-board.sh"
+board_move_card "<number>" "in_progress"
+```
+
+`board_move_card` degrades gracefully: if the board is not configured, the item
+is not on the board, or `gh project` scope is absent, it warns to stderr and
+returns 0 — it never blocks the ticket start.
+
+### 7. Confirm to the User
 
 Output a two-line confirmation that names the marker path so the user sees which scope this ticket is active on:
 
@@ -211,4 +226,4 @@ Do NOT create the branch automatically. The user may already be on a branch, or 
 
 ---
 
-*Part of [ApexYard](https://github.com/me2resh/apexyard) — multi-project SDLC framework for Claude Code · MIT.*
+_Part of [ApexYard](https://github.com/me2resh/apexyard) — multi-project SDLC framework for Claude Code · MIT._

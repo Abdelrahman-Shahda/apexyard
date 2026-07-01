@@ -40,10 +40,10 @@ Identify decision-relevant context only:
 Present 2–4 options in a table:
 
 ```markdown
-| Option | Pros | Cons |
-|--------|------|------|
-| Option A | … | … |
-| Option B | … | … |
+| Option   | Pros | Cons |
+| -------- | ---- | ---- |
+| Option A | …    | …    |
+| Option B | …    | …    |
 ```
 
 ### 4. Make the Decision
@@ -71,10 +71,10 @@ The skeleton:
 ```markdown
 ---
 id: AgDR-{NNNN}
-timestamp: {ISO-8601: YYYY-MM-DDTHH:MM:SSZ}
-agent: {current-agent-name or "claude"}
-model: {model-id from environment}
-trigger: {user-prompt | hook | automation}
+timestamp: { ISO-8601: YYYY-MM-DDTHH:MM:SSZ }
+agent: { current-agent-name or "claude" }
+model: { model-id from environment }
+trigger: { user-prompt | hook | automation }
 status: executed
 ---
 
@@ -83,21 +83,26 @@ status: executed
 > In the context of {context}, facing {concern}, I decided {decision} to achieve {goal}, accepting {tradeoff}.
 
 ## Context
+
 {Decision-relevant context only — 2–4 bullets}
 
 ## Options Considered
+
 | Option | Pros | Cons |
-|--------|------|------|
-| … | … | … |
+| ------ | ---- | ---- |
+| …      | …    | …    |
 
 ## Decision
+
 Chosen: **{option}**, because {justification}.
 
 ## Consequences
+
 - {consequence 1}
 - {consequence 2}
 
 ## Artifacts
+
 - {commit / PR links when available}
 ```
 
@@ -108,7 +113,29 @@ ls docs/agdr/AgDR-*.md 2>/dev/null | sort -V | tail -1 | grep -oE 'AgDR-[0-9]+' 
 # Increment by 1, or start at 0001
 ```
 
-### 7. Return the Decision
+### 7. Offer a Contrarian challenge (optional — opt-in, never forced)
+
+A decision is a high-stakes moment. After drafting the AgDR, surface a **one-line
+nudge** offering to stress-test the call before committing:
+
+```
+Recorded AgDR-{NNNN}. Want Naqid (The Contrarian) to challenge this first?
+Run `/challenge {topic}` — he steelmans it, then attacks hidden assumptions,
+failure modes, and cheaper alternatives. Advisory — it never blocks.
+```
+
+Rules for the offer:
+
+- **Opt-in only.** Never auto-run `/challenge`; the operator decides.
+- **Advisory only.** Its verdict informs; it never vetoes or gates the decision.
+- **Fold the result back.** If the operator runs it and the verdict shifts the
+  call, update the AgDR's Decision / Consequences to reflect the new reasoning and
+  note the challenge under Artifacts.
+
+This mirrors the advisory stance in [`.claude/rules/role-triggers.md`](../../rules/role-triggers.md)
+§ "Optional advisory offer" — see `.claude/skills/challenge/SKILL.md` and AgDR-0078.
+
+### 8. Return the Decision
 
 ```
 Decision: {chosen option}
@@ -124,7 +151,9 @@ Proceeding with: {brief action}
 4. **Justification required** — `because` clause is mandatory
 5. **Timestamp precise** — full ISO-8601 with time
 6. **Slug from title** — lowercase, hyphens, max 50 chars
+7. **Offer a challenge** — after drafting the AgDR, offer `/challenge` (opt-in,
+   advisory, never auto-run); update the AgDR if the verdict shifts the call
 
 ---
 
-*Part of [ApexYard](https://github.com/me2resh/apexyard) — multi-project SDLC framework for Claude Code · MIT.*
+_Part of [ApexYard](https://github.com/me2resh/apexyard) — multi-project SDLC framework for Claude Code · MIT._

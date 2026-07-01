@@ -4,28 +4,28 @@ ApexYard ships **20 role definitions** in `roles/{department}/`. They are not al
 
 ## Activation Table
 
-| Role | File | Activate when… |
-|------|------|----------------|
-| **Head of Engineering** | `roles/engineering/head-of-engineering.md` | Architecture review requested · new tech stack addition · cross-project engineering call · escalation from a Tech Lead |
-| **Tech Lead** | `roles/engineering/tech-lead.md` | Technical design for a new feature · planning phase in SDLC · code review approval gate · implementation task breakdown |
-| **Solution Architect** | `roles/architecture/solution-architect.md` | A technical design / migration AgDR / feature spec is ready for review (before Build) · `/design-review` invoked · a PR carries a design artifact |
-| **Backend Engineer** | `roles/engineering/backend-engineer.md` | Implementation phase on backend code (domain / application / infrastructure layers) · API work · database schema changes |
-| **Frontend Engineer** | `roles/engineering/frontend-engineer.md` | Implementation phase on UI code · component work · design-system integration · accessibility review |
-| **QA Engineer** | `roles/engineering/qa-engineer.md` | **Ticket enters QA state after merge** · acceptance-criteria verification · bug triage · regression testing |
-| **Platform Engineer** | `roles/engineering/platform-engineer.md` | CI/CD pipeline changes · developer tooling · infrastructure-as-code work · golden-path templates |
-| **SRE** | `roles/engineering/sre.md` | Production incident · SLO breach · monitoring / alerting work · on-call rotation |
-| **Head of Product** | `roles/product/head-of-product.md` | Roadmap prioritization · feasibility call · strategic product decision · resource allocation across products |
-| **Product Manager** | `roles/product/product-manager.md` | PRD creation · user-story breakdown · acceptance-criteria authoring · sprint planning |
-| **Product Analyst** | `roles/product/product-analyst.md` | Market research · competitive analysis · metric investigation · data-driven product call |
-| **Head of Design** | `roles/design/head-of-design.md` | Design-system changes · UX principles decision · cross-project visual standards |
-| **UI Designer** | `roles/design/ui-designer.md` | Visual design · component specifications · design tokens · pixel-level work |
-| **UX Designer** | `roles/design/ux-designer.md` | User flows · information architecture · usability review · wireframing |
-| **Head of Security** | `roles/security/head-of-security.md` | Security strategy · threat model · compliance call · cross-project security architecture |
-| **Security Auditor** | `roles/security/security-auditor.md` | **PR touches auth / crypto / user data / secrets** · SAST findings · OWASP review · dependency vulnerability |
-| **Penetration Tester** | `roles/security/penetration-tester.md` | Active testing · exploit discovery · API security review · pre-release security sign-off |
-| **Head of Data** | `roles/data/head-of-data.md` | Analytics strategy · data governance · reporting architecture · cross-project data modelling |
-| **Data Analyst** | `roles/data/data-analyst.md` | SQL queries · dashboards · A/B-test analysis · metric investigation |
-| **Data Engineer** | `roles/data/data-engineer.md` | ETL pipelines · data modelling · data-quality work · warehouse schema changes |
+| Role                    | File                                       | Activate when…                                                                                                                                    |
+| ----------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Head of Engineering** | `roles/engineering/head-of-engineering.md` | Architecture review requested · new tech stack addition · cross-project engineering call · escalation from a Tech Lead                            |
+| **Tech Lead**           | `roles/engineering/tech-lead.md`           | Technical design for a new feature · planning phase in SDLC · code review approval gate · implementation task breakdown                           |
+| **Solution Architect**  | `roles/architecture/solution-architect.md` | A technical design / migration AgDR / feature spec is ready for review (before Build) · `/design-review` invoked · a PR carries a design artifact |
+| **Backend Engineer**    | `roles/engineering/backend-engineer.md`    | Implementation phase on backend code (domain / application / infrastructure layers) · API work · database schema changes                          |
+| **Frontend Engineer**   | `roles/engineering/frontend-engineer.md`   | Implementation phase on UI code · component work · design-system integration · accessibility review                                               |
+| **QA Engineer**         | `roles/engineering/qa-engineer.md`         | **Ticket enters QA state after merge** · acceptance-criteria verification · bug triage · regression testing                                       |
+| **Platform Engineer**   | `roles/engineering/platform-engineer.md`   | CI/CD pipeline changes · developer tooling · infrastructure-as-code work · golden-path templates                                                  |
+| **SRE**                 | `roles/engineering/sre.md`                 | Production incident · SLO breach · monitoring / alerting work · on-call rotation                                                                  |
+| **Head of Product**     | `roles/product/head-of-product.md`         | Roadmap prioritization · feasibility call · strategic product decision · resource allocation across products                                      |
+| **Product Manager**     | `roles/product/product-manager.md`         | PRD creation · user-story breakdown · acceptance-criteria authoring · sprint planning                                                             |
+| **Product Analyst**     | `roles/product/product-analyst.md`         | Market research · competitive analysis · metric investigation · data-driven product call                                                          |
+| **Head of Design**      | `roles/design/head-of-design.md`           | Design-system changes · UX principles decision · cross-project visual standards                                                                   |
+| **UI Designer**         | `roles/design/ui-designer.md`              | Visual design · component specifications · design tokens · pixel-level work                                                                       |
+| **UX Designer**         | `roles/design/ux-designer.md`              | User flows · information architecture · usability review · wireframing                                                                            |
+| **Head of Security**    | `roles/security/head-of-security.md`       | Security strategy · threat model · compliance call · cross-project security architecture                                                          |
+| **Security Auditor**    | `roles/security/security-auditor.md`       | **PR touches auth / crypto / user data / secrets** · SAST findings · OWASP review · dependency vulnerability                                      |
+| **Penetration Tester**  | `roles/security/penetration-tester.md`     | Active testing · exploit discovery · API security review · pre-release security sign-off                                                          |
+| **Head of Data**        | `roles/data/head-of-data.md`               | Analytics strategy · data governance · reporting architecture · cross-project data modelling                                                      |
+| **Data Analyst**        | `roles/data/data-analyst.md`               | SQL queries · dashboards · A/B-test analysis · metric investigation                                                                               |
+| **Data Engineer**       | `roles/data/data-engineer.md`              | ETL pipelines · data modelling · data-quality work · warehouse schema changes                                                                     |
 
 ## Activation Protocol
 
@@ -77,19 +77,19 @@ This is a **prose convention**, not a mechanically-enforced format. The sibling 
 
 **Auto-activation** — a role should activate automatically when its condition is detected in conversation context:
 
-| Signal | Activate |
-|--------|----------|
-| Ticket moved to `qa` label | QA Engineer |
-| PR diff touches `**/auth/**`, `**/crypto/**`, `**/secrets/**`, `.env*` | Security Auditor |
-| PR diff touches `.github/workflows/**`, `golden-paths/pipelines/**` | Platform Engineer |
-| PR diff touches `docs/agdr/**` or adds a new dependency | Tech Lead |
-| Edit/PR touches a design artifact (technical design, migration AgDR, feature spec / PRD) | Solution Architect |
-| Production incident / SLO breach mentioned | SRE |
-| New PRD or spec being drafted | Product Manager |
-| Roadmap question or prioritization call | Head of Product |
-| User flow / wireframe / IA question | UX Designer |
-| Component spec / design tokens question | UI Designer |
-| Cross-project strategy question | The relevant Head of _ role |
+| Signal                                                                                   | Activate                     |
+| ---------------------------------------------------------------------------------------- | ---------------------------- |
+| Ticket moved to `qa` label                                                               | QA Engineer                  |
+| PR diff touches `**/auth/**`, `**/crypto/**`, `**/secrets/**`, `.env*`                   | Security Auditor             |
+| PR diff touches `.github/workflows/**`, `golden-paths/pipelines/**`                      | Platform Engineer            |
+| PR diff touches `docs/agdr/**` or adds a new dependency                                  | Tech Lead                    |
+| Edit/PR touches a design artifact (technical design, migration AgDR, feature spec / PRD) | Solution Architect           |
+| Production incident / SLO breach mentioned                                               | SRE                          |
+| New PRD or spec being drafted                                                            | Product Manager              |
+| Roadmap question or prioritization call                                                  | Head of Product              |
+| User flow / wireframe / IA question                                                      | UX Designer                  |
+| Component spec / design tokens question                                                  | UI Designer                  |
+| Cross-project strategy question                                                          | The relevant Head of \_ role |
 
 **Prompted activation** — the user explicitly asks for a role:
 
@@ -116,23 +116,23 @@ When you hit a CANNOT, hand off to the role that can.
 
 Roles deliver concrete artefacts at each handoff point. These are the contracts between roles — if the artefact isn't ready, the next role can't start.
 
-| From → To | Artefact |
-|-----------|----------|
-| Product Manager → Tech Lead | Approved PRD with acceptance criteria |
-| Tech Lead → Solution Architect | Authored technical design / migration AgDR / feature spec to review |
-| Solution Architect → Tech Lead / Engineers | Design review + sign-off (the Design→Build gate) |
-| Head of Design → UX/UI Designer | Design system tokens + principles |
-| UX Designer → UI Designer | User flows + wireframes |
-| UI Designer → Frontend Engineer | Component specs + design tokens |
-| Tech Lead → Backend / Frontend Engineer | Technical design + task breakdown |
-| Backend / Frontend Engineer → QA Engineer | Testable build + PR |
-| Security Auditor → Tech Lead | Security findings + required fixes |
-| QA Engineer → Product Manager | AC verification sign-off |
-| Platform Engineer → SRE | Production deployment + runbook |
+| From → To                                  | Artefact                                                            |
+| ------------------------------------------ | ------------------------------------------------------------------- |
+| Product Manager → Tech Lead                | Approved PRD with acceptance criteria                               |
+| Tech Lead → Solution Architect             | Authored technical design / migration AgDR / feature spec to review |
+| Solution Architect → Tech Lead / Engineers | Design review + sign-off (the Design→Build gate)                    |
+| Head of Design → UX/UI Designer            | Design system tokens + principles                                   |
+| UX Designer → UI Designer                  | User flows + wireframes                                             |
+| UI Designer → Frontend Engineer            | Component specs + design tokens                                     |
+| Tech Lead → Backend / Frontend Engineer    | Technical design + task breakdown                                   |
+| Backend / Frontend Engineer → QA Engineer  | Testable build + PR                                                 |
+| Security Auditor → Tech Lead               | Security findings + required fixes                                  |
+| QA Engineer → Product Manager              | AC verification sign-off                                            |
+| Platform Engineer → SRE                    | Production deployment + runbook                                     |
 
 ## Aspirational → Real
 
-Before this rule existed, the 19 role files were passive markdown docs — no trigger, no activation, no automatic reference from workflows or skills. A user had to manually say *"please read `roles/engineering/qa-engineer.md` and act as the QA Engineer"* for anything to happen.
+Before this rule existed, the 19 role files were passive markdown docs — no trigger, no activation, no automatic reference from workflows or skills. A user had to manually say _"please read `roles/engineering/qa-engineer.md` and act as the QA Engineer"_ for anything to happen.
 
 This file closes that gap. When in a Claude Code session under apexyard, the trigger table drives which role activates, and the workflow and skill files now explicitly reference the role files at every phase boundary. Roles are now **first-class participants** in the SDLC, not reference material.
 
@@ -155,14 +155,14 @@ The class lookup is conservative: if the role file is missing or the `**Class**:
 
 Triggers wired in v1 (me2resh/apexyard#206):
 
-| Trigger family | Hook event | Detection | Role |
-|----------------|------------|-----------|------|
-| Label-based  | `PreToolUse` on `Bash` (matcher: `gh issue edit *`) | `--add-label qa` (single or comma list) | QA Engineer |
-| Diff/path    | `PreToolUse` on `Edit` / `Write` / `MultiEdit` | path contains `auth/`, `crypto/`, `secrets/`, `.env*` | Security Auditor |
-| Diff/path    | same | path under `.github/workflows/` or `golden-paths/pipelines/` | Platform Engineer |
-| Diff/path    | same | path under `docs/agdr/` | Tech Lead |
-| Diff/path    | same | path matches a design artifact (`*technical-design*.md`, `*tech-design*.md`, `**/designs/**`, `**/prds/**`, `*prd*.md`, `*feature-spec*.md`, `docs/agdr/*migration*.md`) | Solution Architect |
-| Prompted     | `UserPromptSubmit` | "act as the X" / "as the X" / "put on your X hat" (case-insensitive, X matches any role in the activation table) | the named role |
+| Trigger family | Hook event                                          | Detection                                                                                                                                                                | Role               |
+| -------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------ |
+| Label-based    | `PreToolUse` on `Bash` (matcher: `gh issue edit *`) | `--add-label qa` (single or comma list)                                                                                                                                  | QA Engineer        |
+| Diff/path      | `PreToolUse` on `Edit` / `Write` / `MultiEdit`      | path contains `auth/`, `crypto/`, `secrets/`, `.env*`                                                                                                                    | Security Auditor   |
+| Diff/path      | same                                                | path under `.github/workflows/` or `golden-paths/pipelines/`                                                                                                             | Platform Engineer  |
+| Diff/path      | same                                                | path under `docs/agdr/`                                                                                                                                                  | Tech Lead          |
+| Diff/path      | same                                                | path matches a design artifact (`*technical-design*.md`, `*tech-design*.md`, `**/designs/**`, `**/prds/**`, `*prd*.md`, `*feature-spec*.md`, `docs/agdr/*migration*.md`) | Solution Architect |
+| Prompted       | `UserPromptSubmit`                                  | "act as the X" / "as the X" / "put on your X hat" (case-insensitive, X matches any role in the activation table)                                                         | the named role     |
 
 A migration AgDR fires **both** the Tech Lead trigger (`docs/agdr/**`, author) and the Solution Architect trigger (`docs/agdr/*migration*.md`, reviewer) — the two are additive by design: Hisham authors, Tariq reviews.
 
@@ -172,4 +172,17 @@ Tests live at `.claude/hooks/tests/test_detect_role_trigger.sh` and cover the th
 
 ---
 
-*Part of [ApexYard](https://github.com/me2resh/apexyard) — multi-project SDLC framework for Claude Code · MIT.*
+### The Contrarian (utility agent — premise-level adversary)
+
+Naqid (The Contrarian) is a **utility agent**, not a department role — like Rex (`code-reviewer`) and Tariq (`solution-architect`), it isn't tied to an SDLC phase and has no department file under `roles/`. It challenges the **premise** of an idea/feature/spec/decision/plan, and is **advisory-only** (no marker, no gate). It does **not** auto-fire on diffs — challenging a premise is a human-initiated act, so **prompted activation** is the primary path. The phrases below are mechanically detected by `detect-role-trigger.sh` (which emits an advisory banner suggesting `/challenge`).
+
+| Signal                                                                                                                       | Activate               |
+| ---------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
+| `/challenge <target>`                                                                                                        | The Contrarian (Naqid) |
+| "play devil's advocate on …" / "challenge this" / "poke holes in …" / "what's the case against …" / "steelman then attack …" | The Contrarian (Naqid) |
+
+**Optional advisory offer (never forced).** At high-stakes moments — a new AgDR via `/decide`, a new PRD via `/write-spec`, or plan-mode exit on a large call — you MAY surface a one-line nudge offering to run `/challenge` first. The operator opts in; never auto-run it, and never let its verdict block work (it informs, it doesn't veto). See `.claude/agents/contrarian.md`, `.claude/skills/challenge/SKILL.md`, and AgDR-0078.
+
+---
+
+_Part of [ApexYard](https://github.com/me2resh/apexyard) — multi-project SDLC framework for Claude Code · MIT._

@@ -35,7 +35,7 @@ Defaults match today's single-fork layout (`./apexyard.projects.yaml`, `./projec
 
 **Write targets** (see me2resh/apexyard#373 + #443): paths documented as `projects/<name>/X` in this skill are canonical adopter-facing forms — implement them in bash as `"${projects_dir}/<name>/X"`. Never construct from `"${PWD}/projects/..."`, `"$(git rev-parse --show-toplevel)/projects/..."`, or a literal `./projects/...` — those break in split-portfolio v2 mode where `projects_dir` resolves to a sibling repo.
 
-**REQUIRED per-block preamble** (see #443): Claude executes each ```bash``` block as a separate shell invocation. The `projects_dir` assignment from the Path resolution section above does NOT carry into later blocks. Every bash block that writes to a `projects/<name>/X` path MUST start with this three-line preamble so it's self-contained:
+**REQUIRED per-block preamble** (see #443): Claude executes each `bash` block as a separate shell invocation. The `projects_dir` assignment from the Path resolution section above does NOT carry into later blocks. Every bash block that writes to a `projects/<name>/X` path MUST start with this three-line preamble so it's self-contained:
 
 ```bash
 source "$(git rev-parse --show-toplevel)/.claude/hooks/_lib-read-config.sh"
@@ -44,7 +44,7 @@ projects_dir=$(portfolio_projects_dir)
 # ... now write to "${projects_dir}/<name>/X"
 ```
 
-The Path resolution section's example sources the helper *once* for documentation purposes; it does not absolve later blocks from sourcing it themselves. Treat each ```bash``` fence as a fresh process.
+The Path resolution section's example sources the helper _once_ for documentation purposes; it does not absolve later blocks from sourcing it themselves. Treat each `bash` fence as a fresh process.
 
 ## Usage
 
@@ -316,10 +316,10 @@ Write the file via `Write` (NOT `cat > $path` — the framework prefers the dedi
 
 Append to the **Re-run history** table — one row per invocation:
 
-| Date | Delta |
-|------|-------|
+| Date       | Delta                                                                   |
+| ---------- | ----------------------------------------------------------------------- |
 | YYYY-MM-DD | Initial creation — N milestones, scope=`{per-project / framework-wide}` |
-| YYYY-MM-DD | Added milestone "X"; filed M1, M2 as #123, #124 |
+| YYYY-MM-DD | Added milestone "X"; filed M1, M2 as #123, #124                         |
 
 ### 7. Show the rendered doc + confirm
 
@@ -369,7 +369,17 @@ Accept:
 Write the active-issue-skill marker so `require-skill-for-issue-create.sh` lets the `gh issue create` calls through (per AgDR-0030):
 
 ```bash
-ops_root="$(r=$PWD;while [ ! -f \"$r/onboarding.yaml\" ] && [ \"$r\" != / ];do r=${r%/*};done;echo $r)"
+# Resolve the ops-fork root the SAME way the hooks do (_lib-ops-root.sh):
+# anchor on the .apexyard-fork marker (split-portfolio v2 — onboarding.yaml
+# lives in the sibling portfolio repo, NOT the ops fork), falling back to the
+# onboarding.yaml + apexyard.projects.yaml pair (single-fork v1).
+ops_root="$PWD"; r="$PWD"
+while [ "$r" != / ]; do
+  if [ -f "$r/.apexyard-fork" ] || { [ -f "$r/onboarding.yaml" ] && [ -f "$r/apexyard.projects.yaml" ]; }; then
+    ops_root="$r"; break
+  fi
+  r=${r%/*}
+done
 mkdir -p "$ops_root/.claude/session"
 echo "plan-initiative" > "$ops_root/.claude/session/active-issue-skill"
 ```
@@ -378,9 +388,11 @@ For each accepted milestone (in topo-sorted order, so blocking milestones are fi
 
 ```markdown
 ## User Story
+
 As an operator working on the {initiative-name} initiative, I want {milestone-name} so that {success criterion}.
 
 ## Acceptance Criteria
+
 - [ ] {success criterion as a checkbox}
 - [ ] Confidence verified — {confidence value or 'TBD'}
 
@@ -428,12 +440,14 @@ current_body=$(gh issue view "$issue_number" --repo "$repo" --json body -q '.bod
 
 ```markdown
 ## User Story
+
 ... (preserved verbatim) ...
 
 **Blocks**: #X, #Y
 **Blocked by**: #Z
 
 ## Acceptance Criteria
+
 ...
 ```
 
@@ -466,8 +480,8 @@ So a future reader of `<slug>.md` (or a future `/plan-initiative <slug>` re-run)
 
 Append a row to the **Re-run history** table:
 
-| Date | Delta |
-|------|-------|
+| Date       | Delta                                           |
+| ---------- | ----------------------------------------------- |
 | YYYY-MM-DD | Filed milestones M1, M2, M3 as #123, #124, #125 |
 
 ### 10. Return the summary
@@ -519,4 +533,4 @@ Next:
 
 ---
 
-*Part of [ApexYard](https://github.com/me2resh/apexyard) — multi-project SDLC framework for Claude Code · MIT.*
+_Part of [ApexYard](https://github.com/me2resh/apexyard) — multi-project SDLC framework for Claude Code · MIT._

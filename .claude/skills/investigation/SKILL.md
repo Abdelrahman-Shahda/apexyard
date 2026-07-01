@@ -1,15 +1,15 @@
 ---
 name: investigation
 description: Create an investigation ticket + live-doc for sustained root-cause work (retros, bug archaeology, regression hunts).
-argument-hint: "[short-slug-or-incident-id]"
+argument-hint: '[short-slug-or-incident-id]'
 allowed-tools: Bash, Read, Write
 ---
 
 # /investigation — Create an Investigation Ticket + Live-Doc
 
-Creates a structured GitHub Issue + a sibling live-doc markdown file for an **investigation** — sustained root-cause work whose deliverable is a *written artefact* of what was observed, what we concluded, and what's next. Distinct from `/spike` (forward-looking hypothesis with a budget) and `/bug` (immediate-fix) — see the comparison block at the top of `templates/tickets/investigation.md`.
+Creates a structured GitHub Issue + a sibling live-doc markdown file for an **investigation** — sustained root-cause work whose deliverable is a _written artefact_ of what was observed, what we concluded, and what's next. Distinct from `/spike` (forward-looking hypothesis with a budget) and `/bug` (immediate-fix) — see the comparison block at the top of `templates/tickets/investigation.md`.
 
-> **When to use an investigation vs a bug vs a spike.** A `/bug` is filed when you already know what's broken and need to coordinate the fix. A `/spike` is filed when you want to test a forward-looking hypothesis ("will this approach work?") inside a time budget. An `/investigation` is filed when the *question itself* is the unknown — "why did this happen?", "what's actually going on with the metric drift?", "how does competitor X handle this?". The investigation produces a written record; the bug fix that may follow is a downstream artefact.
+> **When to use an investigation vs a bug vs a spike.** A `/bug` is filed when you already know what's broken and need to coordinate the fix. A `/spike` is filed when you want to test a forward-looking hypothesis ("will this approach work?") inside a time budget. An `/investigation` is filed when the _question itself_ is the unknown — "why did this happen?", "what's actually going on with the metric drift?", "how does competitor X handle this?". The investigation produces a written record; the bug fix that may follow is a downstream artefact.
 
 ## Path resolution
 
@@ -39,7 +39,17 @@ Defaults match today's single-fork layout (`./apexyard.projects.yaml`, `./projec
 Before any `gh issue create` (or other tracker CLI), write this skill's name to the active-issue-skill marker so `require-skill-for-issue-create.sh` lets the command through. At skill entry:
 
 ```bash
-ops_root="$(r=$PWD;while [ ! -f \"$r/onboarding.yaml\" ] && [ \"$r\" != / ];do r=${r%/*};done;echo $r)"
+# Resolve the ops-fork root the SAME way the hooks do (_lib-ops-root.sh):
+# anchor on the .apexyard-fork marker (split-portfolio v2 — onboarding.yaml
+# lives in the sibling portfolio repo, NOT the ops fork), falling back to the
+# onboarding.yaml + apexyard.projects.yaml pair (single-fork v1).
+ops_root="$PWD"; r="$PWD"
+while [ "$r" != / ]; do
+  if [ -f "$r/.apexyard-fork" ] || { [ -f "$r/onboarding.yaml" ] && [ -f "$r/apexyard.projects.yaml" ]; }; then
+    ops_root="$r"; break
+  fi
+  r=${r%/*}
+done
 mkdir -p "$ops_root/.claude/session"
 echo "investigation" > "$ops_root/.claude/session/active-issue-skill"
 ```
@@ -275,23 +285,23 @@ Suggested follow-up skills depending on what the investigation surfaces:
 4. **Trigger + Hypothesis + Evidence sources are mandatory.** Method sketch is optional (fills in as you go).
 5. **Live-doc is the working surface.** The GitHub issue tracks visibility + close state; the live-doc holds the evolving evidence + findings.
 6. **Close semantics are different from every other ticket type.** Investigations close when every Follow-up action is resolved or explicitly dropped — NOT on PR merge. The `investigation` label is the signal that downstream automation (if any) should treat the ticket as long-running.
-7. **Labels.** `investigation` always. Priority labels (P0 / P1 / etc.) are NOT applied by default — investigations are scoped by *the question*, not prioritised by P-class. If the investigation is incident-driven and the operator wants a P-label, they can add one manually.
+7. **Labels.** `investigation` always. Priority labels (P0 / P1 / etc.) are NOT applied by default — investigations are scoped by _the question_, not prioritised by P-class. If the investigation is incident-driven and the operator wants a P-label, they can add one manually.
 8. **No close gate (no `/investigation-close` skill).** The Follow-up actions section IS the close gate. Operators close the issue when actions land. Different from `/spike-close` because investigations have an open-ended action list, not a binary disposition. See AgDR-0027 for the rationale.
 9. **Template override.** Adopters who prefer Five Whys / Fishbone over the default Hypothesis Tree drop a replacement at `<private_repo>/custom-templates/tickets/investigation.md`. The skill resolves via `portfolio_resolve_template tickets/investigation.md` — no skill changes needed.
 
 ## How investigations relate to other skills
 
-| Skill | Purpose | When to chain into `/investigation` |
-|-------|---------|-------------------------------------|
-| `/bug` | Immediate-fix scenario, known broken behaviour | Rare — investigations usually file bugs as follow-up actions, not the other way around |
-| `/spike` | Forward-looking hypothesis with a budget | An investigation may conclude "we need a spike to test the fix approach" — file via `/spike` as a follow-up action |
-| `/debug` | Live debugging session (process helper) | A `/debug` session that surfaces a deeper "why did this happen" question naturally promotes to `/investigation` for the written artefact |
-| `/decide` | Record a technical decision (AgDR) | An investigation often concludes with a decision — record it via `/decide` as a follow-up action; cite the investigation from the AgDR |
-| `/feature` | Propose a new user-facing feature | An investigation that reveals a missing capability files a `/feature` as a follow-up action |
-| `/migration` | Migration ticket + AgDR | If the investigation's remediation is a migration, file via `/migration` (which itself produces a ticket + AgDR pair) |
+| Skill        | Purpose                                        | When to chain into `/investigation`                                                                                                      |
+| ------------ | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `/bug`       | Immediate-fix scenario, known broken behaviour | Rare — investigations usually file bugs as follow-up actions, not the other way around                                                   |
+| `/spike`     | Forward-looking hypothesis with a budget       | An investigation may conclude "we need a spike to test the fix approach" — file via `/spike` as a follow-up action                       |
+| `/debug`     | Live debugging session (process helper)        | A `/debug` session that surfaces a deeper "why did this happen" question naturally promotes to `/investigation` for the written artefact |
+| `/decide`    | Record a technical decision (AgDR)             | An investigation often concludes with a decision — record it via `/decide` as a follow-up action; cite the investigation from the AgDR   |
+| `/feature`   | Propose a new user-facing feature              | An investigation that reveals a missing capability files a `/feature` as a follow-up action                                              |
+| `/migration` | Migration ticket + AgDR                        | If the investigation's remediation is a migration, file via `/migration` (which itself produces a ticket + AgDR pair)                    |
 
 The bidirectional summary: investigations are usually **upstream** of other ticket types (they reveal what needs to happen); they're rarely downstream of them.
 
 ---
 
-*Part of [ApexYard](https://github.com/me2resh/apexyard) — multi-project SDLC framework for Claude Code · MIT.*
+_Part of [ApexYard](https://github.com/me2resh/apexyard) — multi-project SDLC framework for Claude Code · MIT._

@@ -158,15 +158,28 @@ MARKER_HOME="${OPS_ROOT:-$REPO_ROOT}"
 . "$MARKER_HOME/.claude/hooks/_lib-review-markers.sh"
 mkdir -p "$MARKER_HOME/.claude/session/reviews"
 # Resolve the repo for the qualified marker name.
-PR_REPO=$(gh pr view {number} --json headRepository --jq '.headRepository.nameWithOwner' 2>/dev/null)
+#
+# In split-portfolio v2 the PR lives in a SIBLING repo, so a bare
+# `gh pr view {number}` (resolved against this cwd = ops fork) returns the WRONG
+# repo — the marker then lands under the ops-fork qualifier and the merge gate,
+# which keys on the PR's real repo, can't find it (false-block). Prefer the repo
+# `/design-review` passes as its optional second arg; this is the SAME slug the
+# gate's read side derives from the merge command's cd-target (me2resh/apexyard#687).
+REPO="{repo}"   # /design-review's optional repo arg, or empty / literal when absent
+[ "$REPO" = "{repo}" ] && REPO=""
+if [ -z "$REPO" ]; then
+  REPO=$(gh pr view {number} --json headRepository --jq '.headRepository.nameWithOwner' 2>/dev/null)
+fi
+PR_REPO="$REPO"
 ARCH_MARKER=$(review_marker_path "$PR_REPO" {number} architecture "$MARKER_HOME")
 ```
 
 ### The command
 
 ```bash
-# Option B (preferred) — the PR's HEAD on GitHub
-gh pr view {number} --json headRefOid --jq .headRefOid > "$ARCH_MARKER"
+# Option B (preferred) — the PR's HEAD on GitHub. Pass --repo so the SHA is the
+# portfolio PR's HEAD, not an ops-fork PR with the same number (#687).
+gh pr view {number} ${REPO:+--repo "$REPO"} --json headRefOid --jq .headRefOid > "$ARCH_MARKER"
 ```
 
 ### Content — MUST be bare SHA + newline
@@ -186,35 +199,42 @@ Report the failure in plain text with the exact command the caller needs to run.
 ```markdown
 ## Design Review: PR #{number}
 
-**Commit**: `{headRefOid}`  ← REQUIRED when reviewing a PR.
+**Commit**: `{headRefOid}` ← REQUIRED when reviewing a PR.
 
 ### Summary
+
 [What this design proposes, in 2-3 sentences]
 
 ### Review Lens Results
-- ✅ Quality attributes / NFRs:    [Pass / Concern / Fail]
-- ✅ Design patterns & structure:  [Pass / Concern / Fail]
-- ✅ Technical debt:               [Pass / Concern / Fail]
-- ✅ Decisions (AgDR linkage):     [Pass / Fail / N/A]   ← BLOCKING
-- ✅ Risk:                         [Pass / Concern / Fail]
-- ✅ Trade-off analysis:           [Pass / Concern / Fail]
-- ✅ Requirements traceability:    [Pass / Concern / Fail]
-- ✅ Migration safety:             [Pass / Concern / Fail / N/A]
-- ✅ Adopter Handbooks:            [Pass / Fail / N/A]
+
+- ✅ Quality attributes / NFRs: [Pass / Concern / Fail]
+- ✅ Design patterns & structure: [Pass / Concern / Fail]
+- ✅ Technical debt: [Pass / Concern / Fail]
+- ✅ Decisions (AgDR linkage): [Pass / Fail / N/A] ← BLOCKING
+- ✅ Risk: [Pass / Concern / Fail]
+- ✅ Trade-off analysis: [Pass / Concern / Fail]
+- ✅ Requirements traceability: [Pass / Concern / Fail]
+- ✅ Migration safety: [Pass / Concern / Fail / N/A]
+- ✅ Adopter Handbooks: [Pass / Fail / N/A]
 
 ### Blocking Findings
+
 [Design changes that must happen before Build, or "None"]
 
 ### Handbook Findings
+
 [Per-handbook list, blocking-first. Omit if no handbooks loaded or no findings.]
 
 ### Suggestions
+
 [Advisory improvements, not blocking]
 
 ### Verdict
+
 **[APPROVED / CHANGES REQUESTED / COMMENT]**
 
 ---
+
 🏛️ Reviewed by Tariq (Solution Architect)
 📌 Reviewed commit: `{headRefOid}`
 ```
@@ -222,7 +242,7 @@ Report the failure in plain text with the exact command the caller needs to run.
 ## Rules
 
 1. **Review, don't author** — you have no Write/Edit tools. If the design needs changes, request them; the Tech Lead revises.
-2. **Be constructive and specific** — cite the design section, explain *why* it's a concern.
+2. **Be constructive and specific** — cite the design section, explain _why_ it's a concern.
 3. **Distinguish blocking from advisory** — only blocking findings should hold up Build.
 4. **AgDR linkage is BLOCKING** — a real technical decision with no AgDR → CHANGES REQUESTED.
 5. **Sign-off marker format is BLOCKING** — on APPROVED, write the marker containing exactly the 40-char HEAD SHA + newline. A malformed marker blocks the merge and forces a rule-violating hand-edit.
@@ -238,4 +258,4 @@ Design-review PR #42 in your-org/your-repo
 
 ---
 
-*Part of [ApexYard](https://github.com/me2resh/apexyard) — multi-project SDLC framework for Claude Code · MIT.*
+_Part of [ApexYard](https://github.com/me2resh/apexyard) — multi-project SDLC framework for Claude Code · MIT._

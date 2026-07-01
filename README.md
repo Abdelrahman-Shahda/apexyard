@@ -1,16 +1,25 @@
 <p align="center">
-  <a href="https://yard.apexscript.com"><img src="https://yard.apexscript.com/og/index.png" alt="ApexYard — where projects get forged" width="640"></a>
+  <a href="https://yard.apexscript.com"><img src="https://yard.apexscript.com/brand/apexyard-avatar-512.png" alt="ApexYard" width="88"></a>
 </p>
 
-# ApexYard
+<h1 align="center">ApexYard</h1>
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE) [![Built for Claude Code](https://img.shields.io/badge/built%20for-Claude%20Code-8A63D2)](https://claude.com/claude-code) [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+<p align="center">
+  <strong>Ship AI-built software like a real engineering team.</strong><br>
+  <em>Where projects get forged.</em>
+</p>
 
-**Where projects get forged.**
+<p align="center">
+  <a href="https://github.com/me2resh/apexyard/releases"><img src="https://img.shields.io/github/v/release/me2resh/apexyard?color=2F6DF6&label=release" alt="Release"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
+  <a href="https://claude.com/claude-code"><img src="https://img.shields.io/badge/built%20for-Claude%20Code-8A63D2" alt="Built for Claude Code"></a>
+  <a href="https://yard.apexscript.com"><img src="https://img.shields.io/badge/site-yard.apexscript.com-2F6DF6" alt="Site"></a>
+  <a href="https://github.com/me2resh/apexyard/stargazers"><img src="https://img.shields.io/github/stars/me2resh/apexyard?style=social" alt="Stars"></a>
+</p>
 
 A multi-project ops repo where your projects reference each other, learn from shared experience, and ship production-ready under a strict SDLC. Built for founders who ship alone, or companies standing up AI-enabled squads.
 
-You don't *add* apexyard to a project — projects get forged *inside* it. One ops repo. Every product. Shared memory. Strict gates. Production-ready MVPs.
+You don't _add_ ApexYard to a project — projects get forged _inside_ it. One ops repo. Every product. Shared memory. Strict gates. Production-ready MVPs.
 
 Claude Code is the default driver, but the rules, hooks, and templates are plain markdown and shell. Swap the AI. Keep the forge. No SaaS. No lock-in.
 
@@ -153,18 +162,18 @@ Keeping a fork current — upgrade in place, when to re-fork instead, and how to
 
 ### What makes it different
 
-| Feature | Without ApexYard | With ApexYard |
-|---------|-------------------|----------------|
-| Code reviews | Ad-hoc prompts | Rex agent on every PR, SHA-bound approval marker |
-| Technical decisions | Lost in chat history | Documented as Agent Decision Records |
-| Quality gates | Hope and pray | 40 shell hooks block bad commits, forged markers, unreviewed merges |
-| Merge approval | Informal "LGTM" | Two-marker gate — Rex (code) + CEO (per-PR explicit) |
-| Database migrations | Drop-column-on-Friday | Dedicated gate: labelled ticket + migration AgDR (rollback, downtime, consumers) required before schema edits |
-| Architecture docs | Nobody draws them | C4 L1 + L2 Mermaid templates + `/c4` skill generates stubs from a codebase |
-| Portfolio visibility | Tab through 5 GitHubs | `/inbox`, `/status`, `/tasks` aggregate across a single registry file |
-| Upstream sync | Forget for 6 months | Session-start drift banner + `/update` skill |
-| Role consistency | Re-explain every session | Persistent role definitions, activation-triggered |
-| Onboarding | Days of context-setting | `/setup` three-exchange config |
+| Feature              | Without ApexYard         | With ApexYard                                                                                                 |
+| -------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| Code reviews         | Ad-hoc prompts           | Rex agent on every PR, SHA-bound approval marker                                                              |
+| Technical decisions  | Lost in chat history     | Documented as Agent Decision Records                                                                          |
+| Quality gates        | Hope and pray            | 40 shell hooks block bad commits, forged markers, unreviewed merges                                           |
+| Merge approval       | Informal "LGTM"          | Two-marker gate — Rex (code) + CEO (per-PR explicit)                                                          |
+| Database migrations  | Drop-column-on-Friday    | Dedicated gate: labelled ticket + migration AgDR (rollback, downtime, consumers) required before schema edits |
+| Architecture docs    | Nobody draws them        | C4 L1 + L2 Mermaid templates + `/c4` skill generates stubs from a codebase                                    |
+| Portfolio visibility | Tab through 5 GitHubs    | `/inbox`, `/status`, `/tasks` aggregate across a single registry file                                         |
+| Upstream sync        | Forget for 6 months      | Session-start drift banner + `/update` skill                                                                  |
+| Role consistency     | Re-explain every session | Persistent role definitions, activation-triggered                                                             |
+| Onboarding           | Days of context-setting  | `/setup` three-exchange config                                                                                |
 
 ## Roles
 
@@ -248,15 +257,15 @@ The `/migration` skill creates both artefacts in one guided flow; the `require-m
 
 ## Templates
 
-| Template | Purpose |
-|----------|---------|
-| PRD | Product Requirements Document with user stories, acceptance criteria |
-| Technical Design | Architecture, domain model, API design, implementation plan |
-| ADR | Architecture Decision Record for significant technical decisions |
-| AgDR | Agent Decision Record — AI-specific decision tracking |
-| Migration AgDR | Migration-specific AgDR — rollback plan, downtime estimate, consumers, observability |
-| C4 Context (L1) | System context Mermaid diagram — external actors + system boundary |
-| C4 Container (L2) | Container Mermaid diagram — deployable units inside the system |
+| Template          | Purpose                                                                              |
+| ----------------- | ------------------------------------------------------------------------------------ |
+| PRD               | Product Requirements Document with user stories, acceptance criteria                 |
+| Technical Design  | Architecture, domain model, API design, implementation plan                          |
+| ADR               | Architecture Decision Record for significant technical decisions                     |
+| AgDR              | Agent Decision Record — AI-specific decision tracking                                |
+| Migration AgDR    | Migration-specific AgDR — rollback plan, downtime estimate, consumers, observability |
+| C4 Context (L1)   | System context Mermaid diagram — external actors + system boundary                   |
+| C4 Container (L2) | Container Mermaid diagram — deployable units inside the system                       |
 
 ## Customization
 
@@ -273,7 +282,7 @@ Contributions are welcome — **start with [CONTRIBUTING.md](CONTRIBUTING.md)** 
 
 ApexYard runs on its own rules, so the flow mirrors any project under ApexYard governance:
 
-1. **File an issue** — open a GitHub issue with the **Bug report** / **Feature request** template. If you run apexyard yourself, the **`/report-apexyard-bug`** and **`/request-apexyard-feature`** skills file it here for you (they target `me2resh/apexyard` — distinct from `/bug` and `/feature`, which file into your *own* managed project).
+1. **File an issue** — open a GitHub issue with the **Bug report** / **Feature request** template. If you run apexyard yourself, the **`/report-apexyard-bug`** and **`/request-apexyard-feature`** skills file it here for you (they target `me2resh/apexyard` — distinct from `/bug` and `/feature`, which file into your _own_ managed project).
 2. **Start the ticket** — `/start-ticket <number>` so the ticket-first hook lets your code edits through.
 3. **Branch + commit** — `{type}/GH-{number}-{short-description}`, conventional commit format (`type(#number): subject`).
 4. **Self-check before pushing** — `npm run lint` / markdownlint / shellcheck as applicable; hooks remind you at `git push`.
@@ -287,7 +296,16 @@ For larger changes (new skills, rule changes, workflow redesigns), open a discus
 
 Thanks to everyone who has helped forge ApexYard:
 
-[![Contributors](https://contrib.rocks/image?repo=me2resh/apexyard)](https://github.com/me2resh/apexyard/graphs/contributors)
+<table>
+  <tr>
+    <td align="center"><a href="https://github.com/me2resh"><img src="https://github.com/me2resh.png?size=100" width="64" alt="me2resh"><br><sub><b>me2resh</b></sub></a></td>
+    <td align="center"><a href="https://github.com/AbdElrahmaN31"><img src="https://github.com/AbdElrahmaN31.png?size=100" width="64" alt="AbdElrahmaN31"><br><sub>AbdElrahmaN31</sub></a></td>
+    <td align="center"><a href="https://github.com/HishamM1"><img src="https://github.com/HishamM1.png?size=100" width="64" alt="HishamM1"><br><sub>HishamM1</sub></a></td>
+    <td align="center"><a href="https://github.com/tifa64"><img src="https://github.com/tifa64.png?size=100" width="64" alt="tifa64"><br><sub>tifa64</sub></a></td>
+  </tr>
+</table>
+
+<sub>External contributors' PRs are squash-merged, so GitHub's commit-author graph under-counts them — this list credits the humans directly. New contributor? Open a PR and you'll be added.</sub>
 
 ## License
 

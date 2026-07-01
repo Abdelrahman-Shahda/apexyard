@@ -18,7 +18,7 @@ Valid invocation triggers:
 
 **Invalid triggers** (do NOT run this skill):
 
-- "looks good" / "nice design" — when said about a whiteboard sketch, a Figma, or a verbal proposal that is not a specific PR's design artifact. Architecture review means reviewing the *committed design doc / AgDR / spec in a PR*, not a sketch.
+- "looks good" / "nice design" — when said about a whiteboard sketch, a Figma, or a verbal proposal that is not a specific PR's design artifact. Architecture review means reviewing the _committed design doc / AgDR / spec in a PR_, not a sketch.
 - "the approach is fine" — when said in a planning context ("let's go with this approach") rather than a review context ("I've reviewed the design doc against the lens and it's sound").
 - "go" / "continue" / "ship it" — umbrella responses to a multi-step plan. Same rule as `/approve-merge`.
 - Your own inference that "the design is probably fine." NO. Stop and ask.
@@ -27,16 +27,18 @@ Valid invocation triggers:
 
 ## Process
 
-### 1. Parse the PR number
+### 1. Parse the PR number — and the repo
 
-Extract from the argument. If none given, infer from the current branch's open PR (`gh pr view --json number --jq '.number'`) or the user's most recent message. If ambiguous, STOP and ask.
+Extract the PR number from the argument. If none given, infer from the current branch's open PR (`gh pr view --json number --jq '.number'`) or the user's most recent message. If ambiguous, STOP and ask.
+
+**Also resolve the repo (`REPO`).** Accept the fully-qualified `owner/repo#N` form, or an explicit `owner/repo` second token. In split-portfolio v2 the PR lives in a _sibling_ repo, so a bare `gh pr view <pr>` resolved against the ops-fork cwd hits the WRONG repo — the marker would then be written under the ops-fork qualifier and the `require-architecture-review.sh` gate (which keys on the PR's real repo, derived from the merge command's cd-target, me2resh/apexyard#687) would never find it → false-block. Pass `--repo "$REPO"` to **every** `gh pr view` call below when `REPO` is known. **Fail loud:** if only a bare number was given and `gh pr view <pr>` cannot resolve the PR from the current cwd, STOP and ask for the `owner/repo#N` form — never write the marker under a guessed qualifier.
 
 ### 2. Sanity-check the user's intent
 
 Re-read the user's most recent message:
 
 - Did they explicitly name this PR, or can I point at a direct "PR #X architecture approved?" question I just asked?
-- Was the *design artifact in the PR* reviewed, or just a sketch / verbal proposal?
+- Was the _design artifact in the PR_ reviewed, or just a sketch / verbal proposal?
 - Is the approval for this specific PR's design, or for a general direction?
 
 If any are unclear — STOP and ask a per-PR explicit question.
@@ -44,7 +46,7 @@ If any are unclear — STOP and ask a per-PR explicit question.
 ### 3. Verify the PR state
 
 ```bash
-gh pr view <pr> --json state,isDraft,mergeable,headRefOid
+gh pr view <pr> ${REPO:+--repo "$REPO"} --json state,isDraft,mergeable,headRefOid
 ```
 
 - `state` must be `OPEN`. Refuse if `MERGED`, `CLOSED`, or `DRAFT`.
@@ -67,7 +69,10 @@ done
 MARKER_HOME="${OPS_ROOT:-$REPO_ROOT}"
 # shellcheck source=/dev/null
 . "$MARKER_HOME/.claude/hooks/_lib-review-markers.sh"
-PR_REPO=$(gh pr view <pr> --json headRepository --jq '.headRepository.nameWithOwner' 2>/dev/null)
+# Prefer the repo resolved in step 1 (the base repo the PR lives in — the slug
+# the gate derives from the merge cd-target, #687). Fall back to headRepository
+# only when REPO is unknown (single-fork / same-repo case).
+PR_REPO="${REPO:-$(gh pr view <pr> --json headRepository --jq '.headRepository.nameWithOwner' 2>/dev/null)}"
 REX=$(review_marker_path "$PR_REPO" <pr> rex "$MARKER_HOME")
 [ -f "$REX" ] && [ "$(tr -d '[:space:]' < "$REX")" = "<headRefOid from step 3>" ]
 ```
@@ -108,7 +113,7 @@ Architecture approval recorded for PR #<pr> at <sha>. The architecture-review me
 - The marker is gitignored (`.claude/session/` is in `.gitignore`). Session state, not code.
 - Re-running `/approve-architecture <pr>` is idempotent — overwrites with current HEAD.
 - New commits after approval invalidate the marker (the gate compares SHAs) — re-request review.
-- This skill does NOT invoke the Solution Architect role. It records approval *after* the design has been reviewed (by Tariq via `/design-review`, or by a human architect).
+- This skill does NOT invoke the Solution Architect role. It records approval _after_ the design has been reviewed (by Tariq via `/design-review`, or by a human architect).
 
 ## Anti-pattern
 
@@ -117,7 +122,7 @@ Architect: "The approach we discussed sounds right, go for it"
 You: *invokes /approve-architecture 42*  ← WRONG
 ```
 
-A verbal approval of an *approach* is not a review of the *committed design artifact*. The correct flow:
+A verbal approval of an _approach_ is not a review of the _committed design artifact_. The correct flow:
 
 ```
 Tech Lead: *commits the technical design to PR #42*
@@ -129,14 +134,14 @@ You: *invokes /approve-architecture 42*  ← CORRECT
 
 ## Relationship to other approval skills
 
-| Skill | Marker (repo-qualified, see AgDR-0060) | Gate hook | Who invokes |
-|-------|----------------------------------------|-----------|-------------|
-| `/approve-merge` | `<owner>__<repo>__<pr>-ceo.approved` | `block-unreviewed-merge.sh` | On explicit CEO per-PR merge nod |
-| `/approve-design` | `<owner>__<repo>__<pr>-design.approved` | `require-design-review-for-ui.sh` | On explicit designer per-PR design nod |
+| Skill                       | Marker (repo-qualified, see AgDR-0060)            | Gate hook                            | Who invokes                                                                     |
+| --------------------------- | ------------------------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------- |
+| `/approve-merge`            | `<owner>__<repo>__<pr>-ceo.approved`              | `block-unreviewed-merge.sh`          | On explicit CEO per-PR merge nod                                                |
+| `/approve-design`           | `<owner>__<repo>__<pr>-design.approved`           | `require-design-review-for-ui.sh`    | On explicit designer per-PR design nod                                          |
 | **`/approve-architecture`** | **`<owner>__<repo>__<pr>-architecture.approved`** | **`require-architecture-review.sh`** | On explicit architect per-PR design-review nod (or Tariq writes it on APPROVED) |
 
 All follow the same pattern: verify PR state → verify Rex marker → write marker at ops fork root → confirm → stop. None runs `gh pr merge`.
 
 ---
 
-*Part of [ApexYard](https://github.com/me2resh/apexyard) — multi-project SDLC framework for Claude Code · MIT.*
+_Part of [ApexYard](https://github.com/me2resh/apexyard) — multi-project SDLC framework for Claude Code · MIT._

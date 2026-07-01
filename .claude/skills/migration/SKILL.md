@@ -1,7 +1,7 @@
 ---
 name: migration
 description: Create a labelled migration ticket + matching migration AgDR — required by the migration gate.
-argument-hint: "[<project>]"
+argument-hint: '[<project>]'
 allowed-tools: Bash, Read, Write
 ---
 
@@ -49,7 +49,17 @@ Defaults match today's single-fork layout (`./apexyard.projects.yaml`, `./projec
 Before any `gh issue create` (or other tracker CLI), write this skill's name to the active-issue-skill marker so `require-skill-for-issue-create.sh` lets the command through. At skill entry:
 
 ```bash
-ops_root="$(r=$PWD;while [ ! -f \"$r/onboarding.yaml\" ] && [ \"$r\" != / ];do r=${r%/*};done;echo $r)"
+# Resolve the ops-fork root the SAME way the hooks do (_lib-ops-root.sh):
+# anchor on the .apexyard-fork marker (split-portfolio v2 — onboarding.yaml
+# lives in the sibling portfolio repo, NOT the ops fork), falling back to the
+# onboarding.yaml + apexyard.projects.yaml pair (single-fork v1).
+ops_root="$PWD"; r="$PWD"
+while [ "$r" != / ]; do
+  if [ -f "$r/.apexyard-fork" ] || { [ -f "$r/onboarding.yaml" ] && [ -f "$r/apexyard.projects.yaml" ]; }; then
+    ops_root="$r"; break
+  fi
+  r=${r%/*}
+done
 mkdir -p "$ops_root/.claude/session"
 echo "migration" > "$ops_root/.claude/session/active-issue-skill"
 ```
@@ -130,10 +140,10 @@ Fill in:
 
 AgDRs are written in the RIGHT repo:
 
-| Where the migration runs | AgDR path |
-|--------------------------|-----------|
-| Inside a managed project's own code repo | `workspace/<project>/docs/agdr/AgDR-NNNN-migration-<slug>.md` |
-| Against the apexyard framework itself (rare — only for framework-level data/config migrations) | `docs/agdr/AgDR-NNNN-migration-<slug>.md` in the ops fork |
+| Where the migration runs                                                                       | AgDR path                                                     |
+| ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| Inside a managed project's own code repo                                                       | `workspace/<project>/docs/agdr/AgDR-NNNN-migration-<slug>.md` |
+| Against the apexyard framework itself (rare — only for framework-level data/config migrations) | `docs/agdr/AgDR-NNNN-migration-<slug>.md` in the ops fork     |
 
 For the `NNNN` id: scan the target `docs/agdr/` directory for existing `AgDR-\d+-.*\.md` files, take the max id, increment. Zero-pad to 4 digits.
 
@@ -194,8 +204,8 @@ Migration AgDR: `<relative-path-to-AgDR>`
 
 ## Glossary
 
-| Term | Definition |
-|------|------------|
+| Term   | Definition   |
+| ------ | ------------ |
 | <term> | <definition> |
 
 ---
@@ -250,15 +260,15 @@ Next step:        run /start-ticket <owner/repo>#<number>, then begin editing th
 
 ## Relation to the migration gate
 
-| Hook | `require-migration-ticket.sh` (fires PreToolUse on Write/Edit to migration paths) |
-|------|------------------------------------------------------------------------------------|
-| Gate 1 | Active ticket exists (same as require-active-ticket.sh) |
-| Gate 2 | The active ticket on GitHub has the `migration` label |
-| Gate 3 | The active ticket's body references an AgDR at `docs/agdr/AgDR-\d+-.*migration.*\.md` |
-| Fail message | Points at this skill with the exact invocation to run |
+| Hook         | `require-migration-ticket.sh` (fires PreToolUse on Write/Edit to migration paths)     |
+| ------------ | ------------------------------------------------------------------------------------- |
+| Gate 1       | Active ticket exists (same as require-active-ticket.sh)                               |
+| Gate 2       | The active ticket on GitHub has the `migration` label                                 |
+| Gate 3       | The active ticket's body references an AgDR at `docs/agdr/AgDR-\d+-.*migration.*\.md` |
+| Fail message | Points at this skill with the exact invocation to run                                 |
 
 The skill and the gate are two halves of the same mechanism: gate detects the situation and blocks, skill builds the artefacts needed to unblock.
 
 ---
 
-*Part of [ApexYard](https://github.com/me2resh/apexyard) — multi-project SDLC framework for Claude Code · MIT.*
+_Part of [ApexYard](https://github.com/me2resh/apexyard) — multi-project SDLC framework for Claude Code · MIT._
