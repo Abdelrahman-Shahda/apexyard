@@ -56,13 +56,16 @@ Every classic "enabler" reuses shipped work (see table below); the only true fou
 **Epic:** `[Epic] Felony Cases Cycle`
 
 **L1 — foundation (blocks all):**
+
 - `[Migration] Felony cycle schema` — case-ext + `case_claimant` + `case_exhibit` + `case_attachment` + session cols (one AgDR)
 
 **L2 — infra (blocked-by L1; parallel):**
+
 - `[Task] Claimant persistence infra` · `[Task] Exhibit persistence infra` · `[Task] Attachment-link persistence infra`
 - `[Task] Accused — track-dependent min (extend)` · `[Feature] K active-court selector` · `[Feature] D division resolver` · `[Task] felonyintake scaffold + AgDR-INTAKE-TX`
 
 **L3 — APIs (work-queue; blocked-by relevant L2):**
+
 - Free-running: A, B, E, F, G, H, I, M, N
 - Convergence: C ←K,D · J ←C+sub-use-cases · L ←J · O ←L · felonyintake-wire ←J,I
 
