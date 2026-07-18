@@ -4,7 +4,9 @@
 > **Team:** 3–4 backend engineers on a work-queue (foundation-first; no per-dev assignment).
 > **Spec (ACs):** Confluence [قضايا الجنايات](https://apessolutions.atlassian.net/wiki/spaces/MOJ/pages/1191804939) · **Screens:** `projects/Moj/design/felony-cases/`
 > **Technical design:** [`../design/felony-cases/felony-cases-technical-design.md`](../design/felony-cases/felony-cases-technical-design.md)
-> **Repo:** apessolutions/moj_judiciary · **Trunk:** `development`
+> **Repo:** apessolutions/moj_judiciary · **Integration branch:** `feature/GH-321-felony-cases` (off `development`)
+>
+> **Branch model (2026-07-12):** renewal ships to production this week from clean `development`; felony is isolated on the **`feature/GH-321-felony-cases`** integration branch. ALL felony PRs (L1 #331, L2 #323–329, L3) target that branch, NOT `development`. Periodically merge `development` → the epic branch to avoid drift (low cost — felony is mostly new files). One final PR `feature/GH-321-felony-cases` → `development` when felony is ready for prod.
 
 ## Delivery model: foundation-first, then work-queue (rev 3)
 
@@ -71,9 +73,44 @@ Every classic "enabler" reuses shipped work (see table below); the only true fou
 
 **AgDRs during Build:** AgDR-INTAKE-TX (first) · active-court selector (extends AgDR-0049) · Claimant/Exhibit sub-aggregates + schema · attachment linkage · division-resolver placement · track-dependent accused min.
 
+## L1 build — felony-only, in one PR (2026-07-12)
+
+Review (Rex + Tariq) found the case identity model contradicted the felony scoping stories (`cases` has no court dimension). **AgDR-0064** captured the decisions; after the product owner clarified **court/division/appeal are FELONY-ONLY**, the whole thing collapsed into a single low-risk PR:
+
+- **PR [#331](https://github.com/apessolutions/moj_judiciary/pull/331)** — all felony sub-data in extension tables: `case_felony_details` (holds felony-only `court_id`/`division_id`/`appeal_court_id` + crime description), `case_accused_felony_details`, the 3 child tables (`case_civil_claimants`/`case_exhibits`/`case_attachments`), and the inline session-snapshot fields. Touches **no shipped data**. Migration `V20260712094733`; AgDRs 0063 (migration) + 0064 (data-modeling). **Rex ✅ + Tariq ✅ at `33043bd`. HELD for CEO GitHub review + merge nod.**
+- **Track A CANCELLED** — the shared-`cases` migration (court/division for all types, uniqueness, backfill) is dropped: **[#333](https://github.com/apessolutions/moj_judiciary/issues/333) closed, AgDR-0065 removed.** No renewal impact.
+
+**Service convention (PO, 2026-07-13):** each felony sub-aggregate (CivilClaimant, Exhibit, Attachment, …) has its OWN `Case<X>ApplicationService` implementing its sync use case — not piled into `CaseApplicationService` (the L3 APIs add add/edit/delete per sub-aggregate). Constraint: `sync<X>(Case, List)` signature preserved (no self load/save) so J composes all children in one transaction; children stay inside the Case aggregate. Accused sync stays in `CaseApplicationService` (shipped). Established in PR #363; #325+ follow it.
+
+**Key model facts (AgDR-0064, felony-only):**
+
+- Court/division/appeal live on `case_felony_details` (felony-only), NOT shared `cases`.
+- **Felony-vs-renewal discriminator = presence of a `case_felony_details` row** (felony list = inner join; renewal = anti-join). `case_type` (جناية/جنحة) = crime class, orthogonal.
+- **Felony "unique per appeal court" = app-layer check in story B** (stations aren't 1:1 with appeal courts; cross-table DB index impossible). Open story-B item: shared `uq_cases_identity` may over-constrain cross-appeal-court felony duplicates.
+- **Build note (Tariq):** insert the `case_felony_details` row in the case's own aggregate transaction; guard story-B uniqueness against TOCTOU.
+- Cosmetic fast-follow: AgDR-0064 H1 title + Artifacts annotation still say "on cases".
+
+Cosmetic fast-follow: AgDR-0063 intro prose still describes the pre-re-cut shape (non-blocking).
+
+## Filed (spine — 2026-07-12)
+
+| # | Ticket | Layer |
+|---|---|---|
+| [#321](https://github.com/apessolutions/moj_judiciary/issues/321) | Epic — Felony Cases Cycle | epic |
+| [#322](https://github.com/apessolutions/moj_judiciary/issues/322) | Migration: felony sub-data schema (AgDR-0063) | L1 |
+| [#323](https://github.com/apessolutions/moj_judiciary/issues/323) | Claimant persistence infra | L2 |
+| [#324](https://github.com/apessolutions/moj_judiciary/issues/324) | Exhibit persistence infra | L2 |
+| [#325](https://github.com/apessolutions/moj_judiciary/issues/325) | Attachment-link persistence infra | L2 |
+| [#326](https://github.com/apessolutions/moj_judiciary/issues/326) | Accused minimum, track-dependent | L2 |
+| [#327](https://github.com/apessolutions/moj_judiciary/issues/327) | JNA-CASE-K active-court selector | L2 |
+| [#328](https://github.com/apessolutions/moj_judiciary/issues/328) | JNA-CASE-D division resolver | L2 |
+| [#329](https://github.com/apessolutions/moj_judiciary/issues/329) | felonyintake scaffold + AgDR-INTAKE-TX | L2 |
+
+**Blocked-by:** all L2 (#323–#329) reference L1 #322 in their bodies. Migration AgDR-0063 authored at `workspace/Moj/docs/agdr/`.
+
 ## Next action
 
-File the epic → L1 → L2 → L3 with real `blocked by #N` edges, on CEO go.
+**L3 (13 API stories)** to be filed once L1 #322 lands and the schema/DTO names are locked — so their ACs reference the real table/field names. Then the work-queue opens for 3–4 backends.
 
 ---
 
