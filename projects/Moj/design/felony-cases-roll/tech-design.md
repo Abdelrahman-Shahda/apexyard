@@ -92,7 +92,17 @@ public interface GetMaxPositionUseCase {                          // NEW — the
 
 **Pinning renewal.** `SessionCoreTest:134` asserts the current `max+1` behaviour and is deleted by this change. **Its assertion must be re-homed onto the renewal application-service test in the same PR** — otherwise nothing pins renewal.
 
-**Track filtering.** `court_sessions` gains a denormalized `proceeding_type`, written at creation from `SessionCreationParams`, backfilled once from `cases.proceeding_type`. The felony roll read goes through a **track-specific, access-guarded port** applying the predicate internally.
+**Type change.** `int` → **`Integer`** on both the domain aggregate (line 89) and the entity (line 64), plus dropping `@Column(nullable = false)` (line 63). The type change is the load-bearing half — a primitive read of NULL throws whatever the annotation says. `ddl-auto` is off, so no startup validator is involved; enforcement is Hibernate's at flush time.
+
+**Deploy ordering.** #540 widens the database, #541 widens the entity. Safe in that order (nothing writes null until #541), a hard failure in reverse — so #541 carries a real `blocked by #540` link and this is a **deploy** ordering, not just a merge ordering.
+
+**رول cleared on move.** `reschedule` (`FelonySessionController:95–108`) and `reassignPending` (`FelonyCourtDivisionChangeService:64`) set `rollPosition = null`. Without this the new unique index turns two **shipped** felony endpoints into failures: `RescheduleSessionUseCase`'s javadoc records that AgDR-0089's deferral rested on there being *no* such constraint, so collisions were silent — a reschedule would now 500, and a court/division change would fail wholesale because it bulk-moves every PENDING session of a case. The advisory lock covers only *assign*; the #540 probe validates only the *past*. Nulling is also the correct semantics: a رول means something only within its own (division, day), and Confluence agrees — JNA-CASE-M says a reschedule "does not assign رول الجلسة", JNA-CASE-N says "keep day, no رول". Recorded as AgDR-0093 Decision 11 because it changes observable behaviour on #391 / #392.
+
+**Track filtering — in the database, against `cases`, no new column.** `CaseJpaEntity` and `CourtSessionJpaEntity` are both package-private in different modules, so no Criteria query can see both. `courtsession` therefore maps a **read-only `@Immutable` projection** of `(id, proceeding_type)` over the `cases` table, and the roll Specification adds one `EXISTS` subquery predicate — composing with the existing division / date / status / text predicates and the accused-name join in `freeTextSearch`. Counts apply the same predicate in their own query, so rows and counts cannot disagree. The read still goes through a **track-specific, access-guarded port**.
+
+> Revision 2 proposed denormalizing `proceeding_type` onto `court_sessions`. **Withdrawn** (CEO, 2026-07-22) — divisions are track-exclusive in operation, and revision 2 justified the column with a risk it had overstated as a leak when access scope is per-division either way. Post-fetch service filtering was then proposed and **also rejected** (CEO): the database must do the filtering.
+>
+> **Reviewer, this is the open trade:** the projection means `courtsession` reads a table `judicialcase` owns, and `ModularityTests` cannot see it (no Java reference crosses). If you judge that worse than one denormalized column, say so and we reverse to the column — the decision is deliberately reversible and is recorded, not buried. See AgDR-0093 Decision 7.
 
 > **Deliberately not a public `CourtSessionFilter` dimension.** `listRoll` / `countRollByStatus` assert `assertCanAccessDivision`; the scalar `list(filter)` / `countByStatus(filter)` overloads do **not**, and `CourtSessionFilter` is on the published allowlist. A public dimension would point a build agent at the unguarded overload and silently drop access scoping — a fail-closed violation of AgDR-0049/0073.
 
@@ -141,13 +151,14 @@ The lookup is `isAuthenticated()`, **not** `LAWYER_READ`: a secretary needs to r
 
 Precedent to reuse verbatim: `V20260720150759__nullable_session_prosecutor.sql`.
 
-1. `ALTER TABLE court_sessions ALTER COLUMN roll_position INT NULL` — and relax `@Column(nullable = false)` on the entity in the **same PR**, or Hibernate validation fails.
-2. `ADD proceeding_type` + one-time backfill from `cases.proceeding_type`.
-3. **Duplicate probe first**, covering **both** renewal and felony rows (felony rows carry auto-assigned numbers too), before creating:
-   `uq_court_sessions_roll_per_division_day` on `(division_id, session_date, roll_position) WHERE roll_position IS NOT NULL AND deleted_at IS NULL`.
+1. `ALTER TABLE court_sessions ALTER COLUMN roll_position INT NULL`. The entity's `int` → `Integer` change and the dropped annotation land in #541 — see the deploy-ordering note in §4.
+2. **Duplicate probe first — load-bearing, with a remediation path.** `max+1` is only one of four paths that write a رول; the other three are unchecked (clerk-supplied `params.rollPosition()`, the renewal edit correction, and reschedule / reassign), so duplicates may already exist in **both** tracks' rows. If the probe finds any: clear the losing rows' رول to NULL (now a legal value — the secretary reassigns on the roll) and list the affected (division, date) pairs on #540 before the index is created.
+3. Then create `uq_court_sessions_roll_per_division_day` on `(division_id, session_date, roll_position) WHERE roll_position IS NOT NULL AND deleted_at IS NULL`.
 4. `CREATE TABLE felony_day_appointed_lawyers` — id, division_id, session_date, lawyer_id NULL, lawyer_name, created_at / updated_at / deleted_at.
 
-**No backfill of existing رول values** (CEO, 2026-07-22): booked felony sessions keep their auto-assigned numbers; only new bookings start unassigned.
+**No `proceeding_type` column** — withdrawn; the track filter reads `cases` directly (§4).
+
+**No backfill of existing رول values** (CEO, 2026-07-22): booked felony sessions keep their auto-assigned numbers; only new bookings start unassigned. This is separate from the probe's remediation, which only touches rows that are actually duplicated.
 
 ## 7. Frontend
 
