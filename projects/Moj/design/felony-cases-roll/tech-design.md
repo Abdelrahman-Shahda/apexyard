@@ -1,8 +1,8 @@
 # Felony Day Roll (جدول اليوم — جنايات أول درجة) — Technical Design
 
-> **Status:** revision 2 — folds in Tariq's design review of PR #548 (CHANGES REQUESTED on rev 1, findings B1–B9) and the CEO's endpoint-separation constraint. **Branch base:** `development`.
+> **Status:** revision 4 — folds in three rounds of Tariq's design review of PR #548 (B1–B9, C1–C2, and the Decision 7 rejection) plus the CEO's endpoint-separation, database-side-filter, and symmetric-filter directions. **Branch base:** `development`.
 > **Target repo:** apessolutions/moj_judiciary. **Epic:** #538. **Ticket:** #539 (F0). **PR:** #548.
-> **Decisions:** AgDR-0093 (ten decisions), AgDR-0094 (migration — authored under #540).
+> **Decisions:** AgDR-0093 (eleven decisions), AgDR-0094 (migration — authored under #540).
 > **Source of truth (ACs):** [Confluence — جدول اليوم (جنايات أول درجة)](https://apessolutions.atlassian.net/wiki/spaces/MOJ/pages/1191772164), stories JNA-DAY-A … I (J retired).
 > **Screens:** `projects/Moj/design/felony-cases-roll/*.png`
 > **Related:** AgDR-0088 (track split), AgDR-0085 (`SessionCore`), AgDR-0083 (advisory lock), AgDR-0025 (رول vs position), AgDR-0049 / AgDR-0073 (access scoping), AgDR-0072 (felony API boundary), AgDR-0090 (proceeding-type denormalization).
@@ -98,12 +98,20 @@ public interface GetMaxPositionUseCase {                          // NEW — the
 
 **رول cleared on move.** `reschedule` (`FelonySessionController:95–108`) and `reassignPending` (`FelonyCourtDivisionChangeService:64`) set `rollPosition = null`. Without this the new unique index turns two **shipped** felony endpoints into failures: `RescheduleSessionUseCase`'s javadoc records that AgDR-0089's deferral rested on there being *no* such constraint, so collisions were silent — a reschedule would now 500, and a court/division change would fail wholesale because it bulk-moves every PENDING session of a case. The advisory lock covers only *assign*; the #540 probe validates only the *past*. Nulling is also the correct semantics: a رول means something only within its own (division, day), and Confluence agrees — JNA-CASE-M says a reschedule "does not assign رول الجلسة", JNA-CASE-N says "keep day, no رول". Recorded as AgDR-0093 Decision 11 because it changes observable behaviour on #391 / #392.
 
-**Track filtering — in the database, against `cases`, no new column.** `CaseJpaEntity` and `CourtSessionJpaEntity` are both package-private in different modules, so no Criteria query can see both. `courtsession` therefore maps a **read-only `@Immutable` projection** of `(id, proceeding_type)` over the `cases` table, and the roll Specification adds one `EXISTS` subquery predicate — composing with the existing division / date / status / text predicates and the accused-name join in `freeTextSearch`. Counts apply the same predicate in their own query, so rows and counts cannot disagree. The read still goes through a **track-specific, access-guarded port**.
+**Track filtering — JPQL `EXISTS` subquery, both rolls, no new column.** The day-roll read becomes a JPQL `@Query` carrying:
 
-> Revision 2 proposed denormalizing `proceeding_type` onto `court_sessions`. **Withdrawn** (CEO, 2026-07-22) — divisions are track-exclusive in operation, and revision 2 justified the column with a risk it had overstated as a leak when access scope is per-division either way. Post-fetch service filtering was then proposed and **also rejected** (CEO): the database must do the filtering.
+```
+EXISTS (SELECT 1 FROM CaseJpaEntity c WHERE c.id = s.caseId AND c.proceedingType = :proceedingType)
+```
+
+`courtsession → judicialcase` is an allowed edge already used by this adapter, but `infrastructure.persistence` is not exposed, so Criteria — which needs the Java class — cannot reach `CaseJpaEntity`. **JPQL resolves by entity name and needs no import**, so nothing crosses and nothing is hidden from `ModularityTests` either. `@SQLRestriction` still applies, excluding soft-deleted cases for free — the specific reason JPQL beats native SQL here, since native would silently match them unless the predicate hand-rolls `deleted_at IS NULL`. Native remains the sanctioned fallback (CEO) if JPQL can't express something.
+
+`proceedingType` is a **required, non-null** port parameter — felony passes `FELONY`, renewal passes `RENEWAL`. No unrestricted overload exists, so an unfiltered roll is unreachable by omission. Counts apply the same predicate, so rows and counts cannot disagree.
+
+**Cost:** the roll read moves off `Specification` composition onto a `@Query`; the four optional dimensions and the accused-name join in `freeTextSearch` are expressed in JPQL, and the entity name is a string that fails at runtime on a rename.
+
+> This decision moved three times. Revision 2 chose a denormalized column, justified by a risk overstated as a leak. Revision 3 chose a read-only projection entity; review rejected it — every table here has exactly one owning module (39 for 39) and no `@Immutable`/`@Subselect` exists in `src/main`. Revision 4 is the first version whose justification doesn't rest on a claim that later proved false. See AgDR-0093 Decision 7.
 >
-> **Reviewer, this is the open trade:** the projection means `courtsession` reads a table `judicialcase` owns, and `ModularityTests` cannot see it (no Java reference crosses). If you judge that worse than one denormalized column, say so and we reverse to the column — the decision is deliberately reversible and is recorded, not buried. See AgDR-0093 Decision 7.
-
 > **Deliberately not a public `CourtSessionFilter` dimension.** `listRoll` / `countRollByStatus` assert `assertCanAccessDivision`; the scalar `list(filter)` / `countByStatus(filter)` overloads do **not**, and `CourtSessionFilter` is on the published allowlist. A public dimension would point a build agent at the unguarded overload and silently drop access scoping — a fail-closed violation of AgDR-0049/0073.
 
 ## 5. Backend — felony surface (`felonyintake`)
@@ -156,7 +164,9 @@ Precedent to reuse verbatim: `V20260720150759__nullable_session_prosecutor.sql`.
 3. Then create `uq_court_sessions_roll_per_division_day` on `(division_id, session_date, roll_position) WHERE roll_position IS NOT NULL AND deleted_at IS NULL`.
 4. `CREATE TABLE felony_day_appointed_lawyers` — id, division_id, session_date, lawyer_id NULL, lawyer_name, created_at / updated_at / deleted_at.
 
-**No `proceeding_type` column** — withdrawn; the track filter reads `cases` directly (§4).
+**No `proceeding_type` column** — withdrawn; the track filter is a JPQL subquery against `cases` (§4).
+
+5. **Second probe — QA-enablement, not data safety.** Report whether any live division actually hosts both a renewal and a felony session on the same day. Nobody currently knows. If the answer is "none", QA is signing off on a narrowed result set they will never observe changing, and should be told so rather than left to infer it from a green screen.
 
 **No backfill of existing رول values** (CEO, 2026-07-22): booked felony sessions keep their auto-assigned numbers; only new bookings start unassigned. This is separate from the probe's remediation, which only touches rows that are actually duplicated.
 
