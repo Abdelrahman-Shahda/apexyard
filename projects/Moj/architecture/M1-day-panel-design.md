@@ -72,30 +72,30 @@ The 11 stories cluster into 5 new aggregate slices + reads from 7 existing slice
 
 ```
 DivisionPanel (AggregateRoot)
-├── id: DivisionPanelId
-├── divisionId: DivisionId            (UNIQUE — one row per division)
-├── currentDate: LocalDate            (the date this composition is valid for; freshness marker)
-├── judges: Set<DivisionPanelJudge>   (single collection — panel + delegations + additionals together)
-├── prosecutorRankId: ProsecutionRankId  (FK to existing prosecutionrank slice)
-├── prosecutorName: ProsecutorName    (free text; prosecutors are NOT tracked as aggregates)
+├── id: DivisionPanelId                       (NULL when synthesized from Division.formation defaults pre-first-save)
+├── divisionId: DivisionId                    (UNIQUE — one row per division)
+├── panelDate: LocalDate                      (the date this composition is valid for; freshness marker. Column is panel_date, not current_date — reserved keyword in SQL Server.)
+├── panel: Panel                              (the main slot judges — REUSED from division.domain.Panel; map of FormationRole → JudgeId)
+├── delegatedSubstitutions: Set<DelegatedSubstitution>  (day-scoped substitutes; see entity below)
+├── additionalJudges: Set<JudgeId>            (reserve judges)
+├── prosecutorRankId: ProsecutionRankId?      (FK to existing prosecutionrank slice; NULL until set)
+├── prosecutorName: ProsecutorName?           (free text; prosecutors are NOT tracked as aggregates; NULL until set)
 ├── createdAt: Instant
 └── (soft-deletable for admin purposes only — normal use overwrites in place)
 ```
 
-**`DivisionPanelJudge`** entity (owned by DivisionPanel — one row per assigned judge):
+**`DelegatedSubstitution`** entity (owned by DivisionPanel — one row per delegated substitute):
 
 ```
-DivisionPanelJudge (Entity)
-├── judgeId: JudgeId?                 (NULL when isDelegated=true — delegated judges have no judge id)
-├── role: FormationRole               (PRESIDENT | RIGHT | LEFT | ADDITIONAL)
-├── isDelegated: boolean              (true when this judge is a day-scoped delegated substitute filling the role)
-├── delegatedName: String?            (set when isDelegated=true; the clerk enters the substitute's name)
-└── delegatedJudicialRankId: JudicialRankId?  (set when isDelegated=true; FK to existing judicialrank slice)
+DelegatedSubstitution (Entity)
+├── formationRole: FormationRole              (PRESIDENT | RIGHT | LEFT — the slot this substitute fills)
+├── name: String                              (the substitute judge's name; clerk-entered)
+└── judicialRankId: JudicialRankId            (FK to existing judicialrank slice)
 ```
 
-**Invariant on the entity**: exactly one of `(judgeId)` OR `(delegatedName + delegatedJudicialRankId)` is set. Enforced at the compact-constructor / set time.
+Note: delegated substitutes have no `judge_id` — they're not active judges of this court. Name + rank are entered directly.
 
-**Domain still exposes structured accessors** on top of the flat collection — `panel(): Panel`, `delegatedSubstitutions(): Map<FormationRole, JudgeId>`, `additionalJudges(): Set<JudgeId>` — each derived from `judges` by filtering on `role` + `isDelegated`. Storage is one set; domain reads it as panel/delegations/additionals.
+**Storage flattens these three fields** to a single `division_panel_judges` side table (Decision #12 unchanged at storage level). The persistence mapper translates `(panel, delegatedSubstitutions, additionalJudges)` → rows with `(role, is_delegated)` and back. Domain code reads/writes the structured fields directly; storage shape is encapsulated in the adapter.
 
 **Behaviour methods**: `register(...)`, `rehydrate(...)`, `reassignFormation(...)`, `substituteDelegated(...)`, `addAdditionalJudge(...)`, `removeAdditionalJudge(...)`, `setProsecutor(rankId, name)`, `effectivePanel() → Panel` (resolves delegations: delegated row overrides the non-delegated row for the same role), `freshenForDate(LocalDate, Panel defaults) → void` (overwrites collection from defaults when the clerk opens on a new date).
 
@@ -394,8 +394,9 @@ The application service explicitly queries `status = PENDING` AND `session_date 
 
 | # | Method | Path | Story | Slice |
 |---|--------|------|-------|-------|
-| 1 | GET | `/api/v1/divisions/{id}/panel?date=YYYY-MM-DD` | DAY-A | divisionpanel |
-| 2 | PUT | `/api/v1/division-panels/{id}` | DAY-B/C/D/E/F | divisionpanel |
+| 1 | GET | `/api/v1/division-panels?divisionId={id}&date=YYYY-MM-DD` | DAY-A | divisionpanel |
+| 2a | POST | `/api/v1/division-panels` (first save) | DAY-B/C/D/E/F | divisionpanel |
+| 2b | PUT | `/api/v1/division-panels/{id}` (update) | DAY-B/C/D/E/F | divisionpanel |
 | 3 | POST | `/api/v1/cases/search` | DAY-G | case |
 | 4 | POST | `/api/v1/cases` | DAY-H | case |
 | 5 | POST | `/api/v1/divisions/{id}/sessions` | DAY-I | session |
@@ -819,17 +820,17 @@ For domain errors (not-found, conflict), per-slice `XExceptionHandler` emits a l
 
 New tables across 5 new slices (`divisionpanel`, `case`, `session`, `hearingreason`, `casetype`). All conform to `backend/CLAUDE.md` § "Persistence / SQL conventions": UUID PKs app-assigned (`uniqueidentifier`), table names plural, column names singular, enums as `NVARCHAR`, audit columns on every aggregate, soft delete via `SoftDeletableJpaEntity`, per-module Flyway folder under `classpath:db/migration/<module>/V<prefix>_NNN__name.sql`.
 
-**Flyway prefix allocation** (`shared/` = `V0_*`, `iam/` = `V1_*`):
+**Flyway prefix allocation** (`shared/` = `V0_*`, `iam/` = `V1_*`, existing core slices occupy `V2_*`):
 
 | Module | Flyway prefix |
 |--------|---------------|
-| `hearingreason` | `V2_*` |
-| `casetype` | `V3_*` |
-| `divisionpanel` | `V4_*` |
-| `case` | `V5_*` |
-| `session` | `V6_*` |
+| `divisionpanel` | `V3_*` |
+| `hearingreason` | `V5_*` |
+| `casetype` | `V6_*` |
+| `case` | `V7_*` |
+| `session` | `V8_*` |
 
-Note: reference-data slices (`hearingreason`, `casetype`) sequence first because `case` and `session` reference them via FK.
+Note: `divisionpanel` landed first (DAY-A) so it claimed `V3_*`. Reference-data slices (`hearingreason`, `casetype`) sequence before `case` and `session` because the latter reference them via FK. `V4_*` left as a buffer for future divisionpanel migrations.
 
 ### `hearingreason` slice — sibling of `charge` / `policestation`
 
@@ -869,7 +870,7 @@ Note: reference-data slices (`hearingreason`, `casetype`) sequence first because
 |--------|------|------|-------|
 | `id` | `uniqueidentifier` | NOT NULL | PK (`pk_division_panels`), app-assigned |
 | `division_id` | `uniqueidentifier` | NOT NULL | FK `fk_division_panels_division_id` → `divisions(id)`. **UNIQUE.** |
-| `current_date` | `date` | NOT NULL | Freshness marker — the date this composition is valid for; overwritten when clerk opens on a new date |
+| `panel_date` | `date` | NOT NULL | Freshness marker — the date this composition is valid for; overwritten when clerk opens on a new date. (Named `panel_date` not `current_date` because the latter is a SQL Server reserved keyword.) |
 | `prosecutor_rank_id` | `uniqueidentifier` | NULL | FK `fk_division_panels_prosecutor_rank_id` → `prosecution_ranks(id)`. NULL until set (DAY-E). |
 | `prosecutor_name` | `nvarchar(255)` | NULL | Free-text prosecutor name. NULL until set. Prosecutors aren't tracked as aggregates. |
 | `created_at` | `datetime2` | NOT NULL | |
@@ -948,7 +949,9 @@ No `deleted_at` — Accused lifecycle is bound to its parent Case (Case soft-del
 
 ### `session` slice
 
-#### `sessions` — Session aggregate root
+> **Naming addendum (2026-06-16, PR #65 build-time)**: the four tables in this slice ship under the `court_*` prefix — `court_sessions`, `court_session_judges`, `court_session_accused`, `court_session_accused_lawyers` — rather than the original `sessions` / `session_*` shape this section was drafted with. The rename is defensive against SQL Server's session-related reserved-word footguns (`SESSION_USER` etc.) and was kept after CEO review. Aggregate / JPA-entity / port names are unchanged; only the physical table identifiers carry the prefix. Indexes / constraints follow `pk_court_sessions`, `ix_court_sessions_*`, `fk_court_sessions_*`.
+
+#### `sessions` (physical: `court_sessions`) — Session aggregate root
 
 Inline prosecutor snapshot (prosecutor has no id — rank + name only).
 
